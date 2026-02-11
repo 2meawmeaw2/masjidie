@@ -1,0 +1,35 @@
+{
+  "app_name": "مسجدي",
+  "welcome": "مرحباً بكم",
+  "tabs": {
+    "home": "الرئيسية",
+    "explore": "اكتشف",
+    "schedule": "الجدول",
+    "profile": "حسابي"
+  },
+  "home": {
+    "greeting": "السلام عليكم",
+    "featured": "نشاطات مميزة",
+    "nearby": "مساجد قريبة",
+    "categories": "التصنيفات"
+  },
+  "search": {
+    "placeholder": "ابحث عن مسجد، نشاط..."
+  },
+  "categories": {
+    "tafsir": "تفسير",
+    "fiqh": "فقه",
+    "lecture": "محاضرة",
+    "tahfidh": "تحفيظ",
+    "seerah": "سيرة",
+    "hadith": "حديث",
+    "children": "أطفال",
+    "women": "نساء",
+    "other": "أخرى"
+  },
+  "common": {
+    "view_all": "عرض الكل",
+    "distance": "{{km}} كم",
+    "time_separator": "•"
+  }
+}

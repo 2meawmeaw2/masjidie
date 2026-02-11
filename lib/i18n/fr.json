@@ -1,0 +1,35 @@
+{
+  "app_name": "Masjidie",
+  "welcome": "Bienvenue",
+  "tabs": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "schedule": "Calendrier",
+    "profile": "Profil"
+  },
+  "home": {
+    "greeting": "As-salam alaykoum",
+    "featured": "Activités en vedette",
+    "nearby": "Mosquées à proximité",
+    "categories": "Catégories"
+  },
+  "search": {
+    "placeholder": "Rechercher une mosquée..."
+  },
+  "categories": {
+    "tafsir": "Exégèse",
+    "fiqh": "Jurisprudence",
+    "lecture": "Conférence",
+    "tahfidh": "Mémorisation",
+    "seerah": "Biographie",
+    "hadith": "Hadith",
+    "children": "Enfants",
+    "women": "Femmes",
+    "other": "Autre"
+  },
+  "common": {
+    "view_all": "Voir tout",
+    "distance": "{{km}} km",
+    "time_separator": "•"
+  }
+}

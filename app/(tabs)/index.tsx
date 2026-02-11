@@ -1,98 +1,213 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  TouchableOpacity,
+  FlatList,
+} from "react-native";
+import { Colors, Spacing, Fonts, BorderRadius } from "@/constants/theme";
+import { useTranslation } from "react-i18next";
+import { CATEGORIES, CategoryId } from "@/constants/categories";
+import { MOSQUES, ACTIVITIES } from "@/constants/mockData";
+import { ActivityCard } from "@/components/ActivityCard";
+import { MosqueCard } from "@/components/MosqueCard";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from "expo-image";
+import { FlashList } from "@shopify/flash-list";
+import { Ionicons } from "@expo/vector-icons";
+import { Badge } from "@/components/ui/Badge";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { t } = useTranslation();
+  const colorScheme = useColorScheme() ?? "light";
+  const theme = Colors[colorScheme];
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <View>
+        <Text style={[styles.appName, { color: theme.primary }]}>
+          {t("app_name")}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[
+          styles.notificationBtn,
+          { backgroundColor: theme.card, borderColor: theme.border },
+        ]}
+      >
+        <Ionicons name="notifications-outline" size={24} color={theme.icon} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderCategories = () => (
+    <View style={styles.sectionContainer}>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: Spacing.md,
+          gap: Spacing.sm,
+        }}
+        data={
+          Object.entries(CATEGORIES) as [
+            CategoryId,
+            (typeof CATEGORIES)[CategoryId],
+          ][]
+        }
+        renderItem={({ item: [id, cat] }) => (
+          <TouchableOpacity
+            style={[
+              styles.categoryChip,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: `${cat.color}20` },
+              ]}
+            >
+              {/* @ts-ignore */}
+              <Ionicons name={cat.icon as any} size={18} color={cat.color} />
+            </View>
+            <Text style={[styles.categoryLabel, { color: theme.text }]}>
+              {t(cat.label)}
+            </Text>
+          </TouchableOpacity>
+        )}
+        keyExtractor={([id]) => id}
+      />
+    </View>
+  );
+
+  const renderFeatured = () => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          {t("home.featured")}
+        </Text>
+        <TouchableOpacity>
+          <Text style={[styles.seeAll, { color: theme.primary }]}>
+            {t("common.view_all")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{ paddingHorizontal: Spacing.md }}>
+        {ACTIVITIES.slice(0, 3).map((activity) => (
+          <ActivityCard
+            key={activity.id}
+            activity={activity}
+            mosqueName={
+              MOSQUES.find((m) => m.id === activity.mosqueId)?.name ?? ""
+            }
+            onPress={() => {}}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderNearby = () => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          {t("home.nearby")}
+        </Text>
+        <TouchableOpacity>
+          <Text style={[styles.seeAll, { color: theme.primary }]}>
+            {t("common.view_all")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{ paddingHorizontal: Spacing.md }}>
+        {MOSQUES.slice(0, 3).map((mosque) => (
+          <MosqueCard key={mosque.id} mosque={mosque} onPress={() => {}} />
+        ))}
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      edges={["top"]}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {renderHeader()}
+        {renderCategories()}
+        {renderFeatured()}
+        {renderNearby()}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  greeting: {
+    fontSize: 16,
+    fontFamily: Fonts.rsans,
+    opacity: 0.8,
+  },
+  appName: {
+    fontSize: 24,
+    fontFamily: Fonts.bdsans,
+  },
+  notificationBtn: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  sectionContainer: {
+    marginBottom: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bdsans,
+  },
+  seeAll: {
+    fontSize: 14,
+    fontFamily: Fonts.mdsans,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: Spacing.sm,
+    paddingRight: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  iconContainer: {
+    padding: 6,
+    borderRadius: BorderRadius.full,
+  },
+  categoryLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.mdsans,
   },
 });
