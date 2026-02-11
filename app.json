@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.masjidie.app"
+      "bundleIdentifier": "com.masjidie2.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "backgroundImage": "./assets/logoSpaced.png",
         "monochromeImage": "./assets/logoSpaced.png"
       },
-      "package": "com.masjidie.app",
+      "package": "com.masjidie2.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -42,7 +42,6 @@
         }
       ],
       "expo-localization",
-
       [
         "expo-font",
         {
@@ -56,8 +55,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
-      }
+        "projectId": "d23c4e91-a110-488d-97c8-738b656e6862"
+      },
+      "router": {}
     }
   }
 }
