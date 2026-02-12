@@ -55,6 +55,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: "500",
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.rsans,
   },
 });

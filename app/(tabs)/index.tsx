@@ -20,6 +20,7 @@ import { Image } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { Badge } from "@/components/ui/Badge";
+import Logo from "@/assets/logo.svg";
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -33,14 +34,7 @@ export default function HomeScreen() {
           {t("app_name")}
         </Text>
       </View>
-      <TouchableOpacity
-        style={[
-          styles.notificationBtn,
-          { backgroundColor: theme.card, borderColor: theme.border },
-        ]}
-      >
-        <Ionicons name="notifications-outline" size={24} color={theme.icon} />
-      </TouchableOpacity>
+      <Logo width={40} height={40} />
     </View>
   );
 
@@ -98,16 +92,19 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
-        {ACTIVITIES.slice(0, 3).map((activity) => (
-          <ActivityCard
-            key={activity.id}
-            activity={activity}
-            mosqueName={
-              MOSQUES.find((m) => m.id === activity.mosqueId)?.name ?? ""
-            }
-            onPress={() => {}}
-          />
-        ))}
+        {ACTIVITIES.slice(0, 3).map((activity, index) => {
+          const mosque = MOSQUES.find((m) => m.id === activity.mosqueId);
+          return (
+            <ActivityCard
+              index={index}
+              key={activity.id}
+              activity={activity}
+              mosqueName={mosque?.name ?? ""}
+              imageUrl={activity?.imageUrl}
+              onPress={() => {}}
+            />
+          );
+        })}
       </View>
     </View>
   );
@@ -186,6 +183,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionTitle: {
+    textAlign: "right",
     fontSize: 18,
     fontFamily: Fonts.bdsans,
   },

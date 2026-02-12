@@ -49,6 +49,10 @@ function RootLayoutContent() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen
+          name="details/mosqueInfo"
+          options={{ animation: "ios_from_right" }}
+        />
       </Stack>
     </NavThemeProvider>
   );

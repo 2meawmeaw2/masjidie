@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { useRouter } from "expo-router"; // 1. Import useRouter
 import {
   Colors,
   Spacing,
@@ -13,18 +14,28 @@ import { Ionicons } from "@expo/vector-icons";
 
 interface MosqueCardProps {
   mosque: Mosque;
-  onPress: () => void;
+  onPress?: () => void; // 2. Made optional since card now handles nav
 }
 
 export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
+  const router = useRouter(); // 3. Initialize router
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
+  // 4. Create a handler that navigates to the details page
+  const handlePress = () => {
+    // Navigates to app/(tabs)/details/mosqueInfo?id=1
+    router.push(`/details/mosqueInfo?id=${mosque.id}`);
+
+    // If you passed an extra onPress (e.g. for analytics), run it too
+    if (onPress) onPress();
+  };
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={onPress}
+      onPress={handlePress} // 5. Use our new handler
       style={[
         styles.card,
         { backgroundColor: theme.card, borderColor: theme.border },
@@ -34,7 +45,10 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
       <Image source={{ uri: mosque.imageUrl }} style={styles.image} />
 
       <View style={styles.content}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.name, { color: theme.text, width: "100%" }]}
+          numberOfLines={1}
+        >
           {mosque.name}
         </Text>
 
@@ -65,7 +79,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: Spacing.md,
     flexDirection: "row",
-    height: 100, // Fixed height for list consistency
+    direction: "ltr",
+    height: 100,
   },
   image: {
     width: 100,
@@ -76,11 +91,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.sm,
     justifyContent: "space-between",
+    direction: "rtl",
   },
   name: {
     fontSize: 16,
     fontFamily: Fonts.bdsans,
-    textAlign: "left",
   },
   row: {
     flexDirection: "row",
