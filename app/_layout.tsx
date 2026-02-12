@@ -1,17 +1,17 @@
 import {
+  ThemeProvider as NavThemeProvider,
   DarkTheme,
   DefaultTheme,
-  ThemeProvider as NavThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { I18nManager } from "react-native";
+import { I18nManager, Platform } from "react-native";
 
 import "@/lib/i18n";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { fontAssets } from "@/constants/fonts";
 import {
   ThemeProvider as AppThemeProvider,
@@ -53,7 +53,12 @@ function RootLayoutContent() {
           name="details/mosqueInfo"
           options={{ animation: "ios_from_right" }}
         />
+        <Stack.Screen
+          name="details/eventInfo"
+          options={{ animation: "ios_from_right" }}
+        />
       </Stack>
+      <StatusBar style="auto" />
     </NavThemeProvider>
   );
 }

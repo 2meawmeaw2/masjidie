@@ -31,5 +31,22 @@
     "view_all": "عرض الكل",
     "distance": "{{km}} كم",
     "time_separator": "•"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "appearance": "المظهر",
+    "darkMode": "الوضع الداكن",
+    "darkModeDesc": "تفعيل المظهر الداكن",
+    "language": "اللغة",
+    "location": "الموقع",
+    "currentLocation": "الموقع الحالي",
+    "refreshLocation": "تحديث الموقع",
+    "locationUpdated": "تم تحديث الموقع",
+    "locationError": "تعذر جلب الموقع",
+    "searchPlaceholder": "ابحث عن مدينة...",
+    "searching": "جاري البحث...",
+    "noResults": "لا توجد نتائج",
+    "savedLocation": "الموقع المحفوظ",
+    "clearLocation": "مسح الموقع المحفوظ"
   }
 }

@@ -4,6 +4,7 @@ const tintColorDark = "#34D399"; // Light Emerald for Dark Mode
 export const Colors = {
   light: {
     text: "#1F2937",
+    textSecondary: "#6B7280",
     background: "#FFFFFF",
     tint: tintColorLight,
     icon: "#6B7280",
@@ -18,6 +19,7 @@ export const Colors = {
   },
   dark: {
     text: "#F9FAFB",
+    textSecondary: "#9CA3AF",
     background: "#111827", // Dark Gray
     tint: tintColorDark,
     icon: "#9CA3AF",

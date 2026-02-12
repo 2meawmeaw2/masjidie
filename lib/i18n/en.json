@@ -1,0 +1,52 @@
+{
+  "app_name": "Masjidie",
+  "welcome": "Welcome",
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "schedule": "Schedule",
+    "profile": "Profile"
+  },
+  "home": {
+    "greeting": "As-salam alaykoum",
+    "featured": "Featured Activities",
+    "nearby": "Nearby Mosques",
+    "categories": "Categories"
+  },
+  "search": {
+    "placeholder": "Search for a mosque, activity..."
+  },
+  "categories": {
+    "tafsir": "Tafsir",
+    "fiqh": "Fiqh",
+    "lecture": "Lecture",
+    "tahfidh": "Tahfidh",
+    "seerah": "Seerah",
+    "hadith": "Hadith",
+    "children": "Children",
+    "women": "Women",
+    "other": "Other"
+  },
+  "common": {
+    "view_all": "View All",
+    "distance": "{{km}} km",
+    "time_separator": "•"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "darkMode": "Dark Mode",
+    "darkModeDesc": "Enable dark theme",
+    "language": "Language",
+    "location": "Location",
+    "currentLocation": "Current Location",
+    "refreshLocation": "Refresh Location",
+    "locationUpdated": "Location Updated",
+    "locationError": "Could not fetch location",
+    "searchPlaceholder": "Search City...",
+    "searching": "Searching...",
+    "noResults": "No results found",
+    "savedLocation": "Saved Location",
+    "clearLocation": "Clear Saved Location"
+  }
+}

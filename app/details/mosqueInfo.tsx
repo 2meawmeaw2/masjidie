@@ -4,24 +4,17 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
-  TouchableOpacity,
-  Linking,
-  Platform,
   StatusBar,
+  TouchableOpacity,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Colors,
-  Spacing,
-  BorderRadius,
-  Fonts,
-  Shadows,
-} from "@/constants/theme";
+import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ACTIVITIES, Mosque, MOSQUES } from "@/constants/mockData";
+import { ACTIVITIES, MOSQUES } from "@/constants/mockData";
 import { ActivityCard } from "@/components/ActivityCard";
+import { handleOpenMaps } from "@/lib/location";
 
 export default function MosqueDetails() {
   const router = useRouter();
@@ -49,38 +42,7 @@ export default function MosqueDetails() {
       </View>
     );
   }
-
-  const handleOpenMaps = async () => {
-    // 1. The custom app schemes for Google Maps
-    // Android uses 'google.navigation' or 'http' with the package set
-    // iOS uses 'comgooglemaps://'
-    const destination = encodeURIComponent(mosque.address);
-    const googleMapsUrl = Platform.select({
-      ios: `comgooglemaps://?q=${destination}`,
-      android: `google.navigation:q=${destination}`,
-    });
-
-    // 2. The fallback (Standard Browser URL) if the app isn't installed
-    const browserUrl = `https://www.google.com/maps/search/?api=1&query=${destination}`;
-
-    try {
-      if (googleMapsUrl) {
-        const supported = await Linking.canOpenURL(googleMapsUrl);
-
-        if (supported) {
-          // This opens the Google Maps App directly
-          await Linking.openURL(googleMapsUrl);
-        } else {
-          // Fallback to browser if the app isn't installed
-          await Linking.openURL(browserUrl);
-        }
-      }
-    } catch (error) {
-      // Final fallback for safety
-      Linking.openURL(browserUrl);
-    }
-  };
-
+  console.error(id);
   return (
     <>
       <Stack.Screen
@@ -100,7 +62,12 @@ export default function MosqueDetails() {
       >
         {/* 1. Hero Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: mosque.imageUrl }} style={styles.heroImage} />
+          <Animated.Image
+            source={{ uri: mosque.imageUrl }}
+            style={styles.heroImage}
+            // @ts-ignore
+            sharedTransitionTag={`mosque-${id}`}
+          />
           <View style={styles.overlay} />
         </View>
 
@@ -128,7 +95,7 @@ export default function MosqueDetails() {
             </Section>
 
             <TouchableOpacity
-              onPress={handleOpenMaps}
+              onPress={() => handleOpenMaps(mosque)}
               style={styles.addressLink}
             >
               <Ionicons name="location" size={18} color={theme.primary} />
@@ -213,7 +180,9 @@ export default function MosqueDetails() {
                   activity={activity}
                   mosqueName={mosque?.name ?? ""}
                   imageUrl={activity?.imageUrl}
-                  onPress={() => {}}
+                  onPress={() => {
+                    router.push(`/details/eventInfo?id=${activity.id}`);
+                  }}
                 />
               );
             })}

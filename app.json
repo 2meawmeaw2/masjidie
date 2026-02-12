@@ -58,6 +58,12 @@
         "projectId": "d23c4e91-a110-488d-97c8-738b656e6862"
       },
       "router": {}
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d23c4e91-a110-488d-97c8-738b656e6862"
     }
   }
 }

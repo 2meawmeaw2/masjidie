@@ -31,5 +31,22 @@
     "view_all": "Voir tout",
     "distance": "{{km}} km",
     "time_separator": "•"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "appearance": "Apparence",
+    "darkMode": "Mode Sombre",
+    "darkModeDesc": "Activer le thème sombre",
+    "language": "Langue",
+    "location": "Localisation",
+    "currentLocation": "Position Actuelle",
+    "refreshLocation": "Actualiser la position",
+    "locationUpdated": "Position mise à jour",
+    "locationError": "Impossible de récupérer la position",
+    "searchPlaceholder": "Rechercher une ville...",
+    "searching": "Recherche en cours...",
+    "noResults": "Aucun résultat trouvé",
+    "savedLocation": "Emplacement enregistré",
+    "clearLocation": "Effacer l'emplacement enregistré"
   }
 }

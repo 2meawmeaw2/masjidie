@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router"; // 1. Import useRouter
+import Animated from "react-native-reanimated";
 import {
   Colors,
   Spacing,
@@ -31,7 +32,7 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
     // If you passed an extra onPress (e.g. for analytics), run it too
     if (onPress) onPress();
   };
-
+  console.error(mosque.id);
   return (
     <TouchableOpacity
       activeOpacity={0.8}
@@ -42,7 +43,12 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
         isDark ? {} : Shadows.light,
       ]}
     >
-      <Image source={{ uri: mosque.imageUrl }} style={styles.image} />
+      <Animated.Image
+        source={{ uri: mosque.imageUrl }}
+        style={styles.image}
+        // @ts-ignore
+        sharedTransitionTag={`mosque-${mosque.id}`}
+      />
 
       <View style={styles.content}>
         <Text

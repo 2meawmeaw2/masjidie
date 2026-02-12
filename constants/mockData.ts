@@ -20,51 +20,53 @@ export interface Mosque {
   name: string;
   address: string;
   city: string;
-  distance: number; // km (mock)
+  distance: number; // km (calculated)
   imageUrl: string;
   mapsUrl: string;
+  latitude: number;
+  longitude: number;
+  description?: string;
 }
 
 export const MOSQUES: Mosque[] = [
   {
     id: "m1",
     name: "مسجد الفتح",
-    address: "حي 500 مسكن، الرغاية",
-    mapsUrl: "https://maps.app.goo.gl/rrEhFB1TdzGBU6KT8",
+    address: "الرغاية",
+    mapsUrl: "https://maps.app.goo.gl/8c6UEqB9qy3fyjz48",
     city: "الجزائر العاصمة",
     distance: 0.8,
     imageUrl:
       "https://www.masjidie.com/wp-content/uploads/2026/02/IMG_1556-Djamel-Ouldbachir.webp",
+    latitude: 36.739549,
+    longitude: 3.3409669,
+    description: "مسجد الفتح هو أحد أكبر مساجد المنطقة...",
   },
   {
     id: "m2",
     name: "الجامع الكبير",
     address: "ساحة الشهداء",
     city: "الجزائر العاصمة",
-    mapsUrl: "https://maps.app.goo.gl/rrEhFB1TdzGBU6KT8",
+    mapsUrl: "https://share.google/6G2tROskf7pCERcw5",
     distance: 15.2,
     imageUrl:
-      "http://plus.unsplash.com/premium_photo-1678563876224-dbb520ffef17?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8bW9zcXVlfGVufDB8fDB8fHww",
+      "https://lh3.googleusercontent.com/gps-cs-s/AHVAweq2IKys9W64Frik4Od42uTJGWv1evj3dHwZnU6sFFlYwuqhcyvq4WQ3SpqX6anApV-4O-jHZ0oFCDFFJZojrBVct0RFdb8F8U2PFADM2OchC2X-4TI93Z_EO0Fxq5nCqjtruBy0IwCLMAyX=s1360-w1360-h1020-rw",
+    latitude: 36.73583,
+    longitude: 3.13806,
+    description: "الجامع الكبير هو مسجد تاريخي يقع في ساحة الشهداء...",
   },
   {
     id: "m3",
-    name: "مسجد التقوى",
-    address: "حي البساتين",
-    mapsUrl: "https://maps.app.goo.gl/rrEhFB1TdzGBU6KT8",
-    city: "بومرداس",
+    name: "مسجد الطيب العقبي",
+    address: "باش جراح",
+    mapsUrl: "https://maps.app.goo.gl/ZXM5WdBfZqZLYtPR8",
+    city: "الجزائر العاصمة",
     distance: 2.5,
     imageUrl:
-      "https://images.pexels.com/photos/2079666/pexels-photo-2079666.jpeg",
-  },
-  {
-    id: "m4",
-    name: "مسجد عمر بن الخطاب",
-    address: "وسط المدينة",
-    city: "البليدة",
-    distance: 45.0,
-    mapsUrl: "https://maps.app.goo.gl/rrEhFB1TdzGBU6KT8",
-    imageUrl:
-      "https://images.pexels.com/photos/2079666/pexels-photo-2079666.jpeg",
+      "https://www.masjidie.com/wp-content/uploads/2025/10/IMG_6029-%D8%B1%D8%A7%D9%85%D9%8A-%D9%85%D8%B2%D9%8A%D8%A7%D9%86w-scaled.webp",
+    latitude: 36.7148187,
+    longitude: 3.0935476,
+    description: "مسجد التقوى مسجد حديث يتميز بطرازه المعماري الفريد...",
   },
 ];
 

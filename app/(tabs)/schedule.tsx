@@ -10,7 +10,7 @@ export default function ScheduleScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={[styles.text, { color: theme.text }]}>
-        Schedule Coming Soon
+        saved events goes here{" "}
       </Text>
     </View>
   );

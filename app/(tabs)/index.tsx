@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -7,6 +8,7 @@ import {
   Platform,
   TouchableOpacity,
   FlatList,
+  StatusBar,
 } from "react-native";
 import { Colors, Spacing, Fonts, BorderRadius } from "@/constants/theme";
 import { useTranslation } from "react-i18next";
@@ -21,8 +23,15 @@ import { FlashList } from "@shopify/flash-list";
 import { Ionicons } from "@expo/vector-icons";
 import { Badge } from "@/components/ui/Badge";
 import Logo from "@/assets/logo.svg";
+import {
+  getCurrentLocation,
+  calculateDistance,
+  getPreferredLocation,
+} from "@/lib/location";
+import { useFocusEffect } from "expo-router";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
@@ -34,7 +43,7 @@ export default function HomeScreen() {
           {t("app_name")}
         </Text>
       </View>
-      <Logo width={40} height={40} />
+      <Logo width={50} height={50} />
     </View>
   );
 
@@ -101,12 +110,37 @@ export default function HomeScreen() {
               activity={activity}
               mosqueName={mosque?.name ?? ""}
               imageUrl={activity?.imageUrl}
-              onPress={() => {}}
+              onPress={() => {
+                // @ts-ignore
+                router.push(`/details/eventInfo?id=${activity.id}`);
+              }}
             />
           );
         })}
       </View>
     </View>
+  );
+
+  const [mosquesWithDistance, setMosquesWithDistance] = React.useState(MOSQUES);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const location = await getPreferredLocation();
+        if (location) {
+          const updatedMosques = MOSQUES.map((mosque) => {
+            const dist = calculateDistance(
+              location.latitude,
+              location.longitude,
+              mosque.latitude,
+              mosque.longitude,
+            );
+            return { ...mosque, distance: dist };
+          });
+          setMosquesWithDistance(updatedMosques);
+        }
+      })();
+    }, []),
   );
 
   const renderNearby = () => (
@@ -122,7 +156,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
-        {MOSQUES.slice(0, 3).map((mosque) => (
+        {mosquesWithDistance.slice(0, 3).map((mosque) => (
           <MosqueCard key={mosque.id} mosque={mosque} onPress={() => {}} />
         ))}
       </View>
@@ -132,11 +166,13 @@ export default function HomeScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
-      edges={["top"]}
+      edges={["left", "right"]}
     >
+      <StatusBar backgroundColor="transparent" barStyle="light-content" />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingTop: Spacing.md }}
       >
         {renderHeader()}
         {renderCategories()}
