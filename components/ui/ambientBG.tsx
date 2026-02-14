@@ -102,9 +102,9 @@ export const AmbientBackground = ({ style }: Props) => {
 
   useEffect(() => {
     time.value = withRepeat(
-      withTiming(100, { duration: 20000, easing: Easing.linear }),
+      withTiming(100, { duration: 2000, easing: Easing.linear }),
       -1, // Infinite iterations
-      false, // <--- Set Reverse to FALSE (makes it flow in one direction)
+      true, // <--- Set Reverse to TRUE to enable yoyo
     );
   }, []);
   // derived values from Reanimated work seamlessly with Skia props

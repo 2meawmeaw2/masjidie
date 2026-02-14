@@ -11,7 +11,7 @@ import {
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Mosque } from "@/constants/mockData";
-import { Ionicons } from "@expo/vector-icons";
+import LocationIcon from "@/assets/icons/location.svg";
 
 interface MosqueCardProps {
   mosque: Mosque;
@@ -23,7 +23,6 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
-
   // 4. Create a handler that navigates to the details page
   const handlePress = () => {
     // Navigates to app/(tabs)/details/mosqueInfo?id=1
@@ -58,7 +57,7 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
         </Text>
 
         <View style={styles.row}>
-          <Ionicons name="location-sharp" size={14} color={theme.icon} />
+          <LocationIcon width={20} height={20} />
           <Text
             style={[styles.address, { color: theme.icon }]}
             numberOfLines={1}

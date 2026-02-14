@@ -34,7 +34,7 @@ export default function MosqueDetails() {
   }, []);
 
   const mosque = mosques.find((m) => m.id === id);
-
+  console.log(events, "tofilter");
   if (!mosque) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
@@ -44,6 +44,28 @@ export default function MosqueDetails() {
       </View>
     );
   }
+  console.log("meaw");
+
+  // --- Debugging Logic Start ---
+  console.log("--------------------------------------------------");
+  console.log("DEBUG: Inspecting Events for Mosque ID:", id);
+  console.log("DEBUG: Total Events in Store:", events.length);
+
+  // 1. Filter
+  const filteredEvents = events.filter((activity) => {
+    const isMatch = String(activity.mosqueId) === String(id);
+    console.log(
+      `DEBUG: Event ID: ${activity.id} | Activity MosqueID: "${activity.mosqueId}" | Target ID: "${id}" | Match: ${isMatch}`,
+    );
+    return isMatch;
+  });
+  console.log("DEBUG: Filtered Events Count:", filteredEvents.length);
+
+  // 2. Slice
+  const eventsSlice = filteredEvents.slice(0, 3);
+  console.log("DEBUG: Sliced Events:", eventsSlice);
+  console.log("--------------------------------------------------");
+  // --- Debugging Logic End ---
   return (
     <>
       <Stack.Screen
@@ -169,23 +191,26 @@ export default function MosqueDetails() {
 
           {/* 5. Upcoming Events (Restored) */}
           <Section title="الأحداث القادمة" theme={theme}>
-            {events
-              .filter((activity) => activity.mosqueId === id)
-              .slice(0, 3)
-              .map((activity, index) => {
-                return (
-                  <ActivityCard
-                    index={index}
-                    key={activity.id}
-                    activity={activity}
-                    mosqueName={mosque?.name ?? ""}
-                    imageUrl={activity?.imageUrl}
-                    onPress={() => {
-                      router.push(`/details/eventInfo?id=${activity.id}`);
-                    }}
-                  />
-                );
-              })}
+            {filteredEvents.length === 0 ? (
+              <Text
+                style={{ color: theme.textSecondary, fontFamily: Fonts.rsans }}
+              >
+                لا توجد أحداث قادمة حالياً.
+              </Text>
+            ) : (
+              eventsSlice.map((activity, index) => (
+                <ActivityCard
+                  index={index}
+                  key={activity.id}
+                  activity={activity}
+                  mosqueName={mosque?.name ?? ""}
+                  imageUrl={activity?.imageUrl}
+                  onPress={() => {
+                    router.push(`/details/eventInfo?id=${activity.id}`);
+                  }}
+                />
+              ))
+            )}
           </Section>
         </View>
       </ScrollView>

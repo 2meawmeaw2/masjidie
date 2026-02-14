@@ -29,6 +29,7 @@ import Animated, {
   FadeInDown,
   LinearTransition,
 } from "react-native-reanimated";
+import { calculateDistance, getPreferredLocation } from "@/lib/location";
 
 export default function ExploreScreen() {
   const { t } = useTranslation();
@@ -42,9 +43,40 @@ export default function ExploreScreen() {
     fetchMosques,
   } = useMosquesStore();
 
+  const [mosquesWithDistance, setMosquesWithDistance] = useState(mosques);
+
   React.useEffect(() => {
     fetchMosques();
   }, []);
+
+  // Calculate distances
+  React.useEffect(() => {
+    (async () => {
+      // 1. Get user location
+      const location = await getPreferredLocation();
+
+      // 2. Calculate distance for each mosque
+      if (location && mosques.length > 0) {
+        console.log("[Explore] User Location:", location);
+        const updatedMosques = mosques.map((mosque) => {
+          const dist = calculateDistance(
+            location.latitude,
+            location.longitude,
+            mosque.latitude,
+            mosque.longitude,
+          );
+          console.log(
+            `[Explore] ${mosque.name} (${mosque.latitude}, ${mosque.longitude}) -> ${dist} km`,
+          );
+          return { ...mosque, distance: dist };
+        });
+        setMosquesWithDistance(updatedMosques);
+      } else {
+        // Fallback if no location or empty mosques
+        setMosquesWithDistance(mosques);
+      }
+    })();
+  }, [mosques]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
@@ -52,11 +84,11 @@ export default function ExploreScreen() {
 
   // Extract unique cities (Wilayas)
   const cities = useMemo(() => {
-    const allCities = mosques.map((m) => m.city);
+    const allCities = mosquesWithDistance.map((m) => m.city);
     // Remove duplicates
     const uniqueCities = Array.from(new Set(allCities));
     return ["الكل", ...uniqueCities];
-  }, [mosques]);
+  }, [mosquesWithDistance]);
 
   // Extract categories
   const categories = useMemo(() => {
@@ -65,7 +97,7 @@ export default function ExploreScreen() {
 
   // Filter Logic
   const filteredMosques = useMemo(() => {
-    return mosques.filter((mosque) => {
+    return mosquesWithDistance.filter((mosque) => {
       const matchesSearch =
         mosque.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         mosque.address.toLowerCase().includes(searchQuery.toLowerCase());

@@ -14,6 +14,8 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 /** ACF fields returned for events_activities (field group: events activities fields) */
 export interface WPEventACF {
   mosque_name?: string;
+  mosqueId?: string;
+  id?: number | string;
   mosque_city?: string;
   instructor?: string;
   start_time?: string;
@@ -81,14 +83,38 @@ function isACFObject(acf: WPEventACF | unknown[]): acf is WPEventACF {
   return acf !== null && !Array.isArray(acf) && typeof acf === "object";
 }
 
+// ──────────────────────────────────────────────
+// Arabic day-of-week parser
+// ──────────────────────────────────────────────
+const ARABIC_DAY_MAP: Record<string, number> = {
+  أحد: 0,
+  اثنين: 1,
+  ثلاثاء: 2,
+  أربعاء: 3,
+  خميس: 4,
+  جمعة: 5,
+  سبت: 6,
+};
+
+/** Parse Arabic day string like "كل يوم أحد" → 0 (Sunday) */
+function parseArabicDayOfWeek(raw: unknown): number | undefined {
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") {
+    // Try numeric first
+    const num = parseInt(raw, 10);
+    if (!isNaN(num)) return num;
+    // Search for Arabic day name in the string
+    for (const [name, value] of Object.entries(ARABIC_DAY_MAP)) {
+      if (raw.includes(name)) return value;
+    }
+  }
+  return undefined;
+}
+
 function mapWPEventToActivity(wpEvent: WPEvent): Activity {
   // Resolve featured image from _embedded
   const imageUrl =
     wpEvent._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? "";
-
-  // Map the first WP category to an app CategoryId, fallback to "lecture"
-  const wpCategoryId = wpEvent.events_and_activities_categories[0];
-  const categoryId: CategoryId = WP_CATEGORY_MAP[wpCategoryId] ?? "lecture";
 
   // Extract ACF fields if available (requires "Show in REST API" enabled in WP)
   const acf = isACFObject(wpEvent.acf) ? wpEvent.acf : undefined;
@@ -98,38 +124,60 @@ function mapWPEventToActivity(wpEvent: WPEvent): Activity {
     console.log(`[ACF] Event #${wpEvent.id}:`, JSON.stringify(acf));
   }
 
-  // Parse description: prefer ACF description, fallback to content.rendered
+  // ── Map Arabic ACF fields to Activity props ──
+
+  // id & mosqueId: use mosque_id_temporary, fallback to WP event id
+  const mosqueId = acf?.mosqueId;
+  const id = mosqueId || wpEvent.id.toString();
+  console.log(acf, "idws");
+
+  // mosqueName & mosqueCity from Arabic keys
+  const mosqueName = (acf?.["اسم_المسجد"] as string) || undefined;
+  const mosqueCity = (acf?.["البلدية"] as string) || undefined;
+
+  // title: WP title, fallback to النشاط
+  const title = wpEvent.title.rendered || (acf?.["النشاط"] as string) || "";
+
+  // description: prefer وصف, fallback to content.rendered
   const rawDescription =
-    acf?.description ?? wpEvent.content.rendered.replace(/<[^>]*>/g, "").trim();
+    (acf?.["وصف"] as string) ||
+    (acf?.description as string) ||
+    wpEvent.content.rendered.replace(/<[^>]*>/g, "").trim();
   const description = typeof rawDescription === "string" ? rawDescription : "";
 
-  // Parse dayOfWeek: ACF may return a string or number
-  const rawDay = acf?.day_of_week;
-  const dayOfWeek =
-    typeof rawDay === "number"
-      ? rawDay
-      : typeof rawDay === "string"
-        ? parseInt(rawDay, 10) || undefined
-        : undefined;
+  // categoryId: use first item in تصنيفات array, then WP categories
+  const acfCategories = acf?.["تصنيفات"] as number[] | undefined;
+  const wpCategoryId =
+    acfCategories?.[0] ?? wpEvent.events_and_activities_categories[0];
+  const categoryId: CategoryId = WP_CATEGORY_MAP[wpCategoryId] ?? "lecture";
 
-  // Parse event type
+  // dayOfWeek: parse التاريخ_والوقت (e.g. "كل يوم أحد" → 0)
+  const dayOfWeek =
+    parseArabicDayOfWeek(acf?.["التاريخ_والوقت"]) ??
+    parseArabicDayOfWeek(acf?.day_of_week);
+
+  // type: default to recurring
   const rawType = acf?.event_type;
   const type: "recurring" | "one_off" =
     rawType === "one_off" ? "one_off" : "recurring";
 
+  // instructor from الإمام
+  const instructor =
+    (acf?.["الإمام"] as string) || (acf?.instructor as string) || undefined;
+  console.log("sdads", mosqueName + " " + mosqueCity);
   return {
-    id: String(wpEvent.id),
-    mosqueId: "",
-    mosqueName: acf?.mosque_name ?? undefined,
-    mosqueCity: acf?.mosque_city ?? undefined,
-    title: wpEvent.title.rendered,
+    id,
+    mosqueId: mosqueName + " " + mosqueCity,
+    mosqueName,
+    mosqueCity,
+    title,
     description,
     categoryId,
     type,
     dayOfWeek,
     startTime: acf?.start_time ?? "",
     endTime: acf?.end_time ?? undefined,
-    instructor: acf?.instructor ?? undefined,
+    instructor,
     imageUrl,
   };
 }
@@ -142,15 +190,15 @@ async function fetchEventsFromAPI(): Promise<Activity[]> {
     const response = await fetch(
       "https://www.masjidie.com/wp-json/wp/v2/events_activities?_embed&per_page=100",
     );
-    console.log(response, "events");
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data: WPEvent[] = await response.json();
-
-    return data.map(mapWPEventToActivity);
+    const events = data.map(mapWPEventToActivity);
+    console.log(events, "data");
+    return events;
   } catch (error) {
     console.error("Failed to fetch events:", error);
     throw error;

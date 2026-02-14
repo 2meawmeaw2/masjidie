@@ -11,6 +11,7 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { IslamicSchool } from "@/constants/mockData";
 import { Ionicons } from "@expo/vector-icons";
+import LocationIcon from "@/assets/icons/location.svg";
 
 interface IslamicSchoolCardProps {
   school: IslamicSchool;
@@ -64,7 +65,7 @@ export function IslamicSchoolCard({ school, onPress }: IslamicSchoolCardProps) {
 
         {/* City */}
         <View style={styles.row}>
-          <Ionicons name="location-sharp" size={13} color={theme.icon} />
+          <LocationIcon width={20} height={20} />
           <Text
             style={[styles.subtitle, { color: theme.icon }]}
             numberOfLines={1}

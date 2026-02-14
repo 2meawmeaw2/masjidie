@@ -54,6 +54,7 @@ export default function HomeScreen() {
     isLoading: mosquesLoading,
     fetchMosques,
   } = useMosquesStore();
+
   const renderHeader = () => (
     <View style={[styles.headerContainer, { marginTop: insets.top }]}>
       <View>
@@ -231,6 +232,8 @@ export default function HomeScreen() {
     NavigationBar.setBackgroundColorAsync("transparent");
     NavigationBar.setPositionAsync("absolute");
   }, []);
+  console.log("events", events);
+  console.log("mosquess", mosques);
 
   return (
     <View style={styles.container}>

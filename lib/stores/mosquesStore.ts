@@ -82,7 +82,6 @@ function mapWPMosqueToMosque(wp: WPMosque): Mosque {
     wp._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? "";
 
   const imageUrl = picUrl || featuredImage || "";
-  console.log("imageUrl", imageUrl);
 
   // Parse coordinates
   // Strategy:
@@ -107,8 +106,9 @@ function mapWPMosqueToMosque(wp: WPMosque): Mosque {
     longitude = typeof rawLng === "string" ? parseFloat(rawLng) || 0 : 0;
   }
 
+  //! keep the id linked to the form for now (to sync with events)
   return {
-    id: String(wp.id),
+    id: acf?.name + " " + acf?.commune,
     name: acf?.name ?? wp.title.rendered,
     address: acf?.commune ?? "",
     city: acf?.state_ ?? "",
@@ -139,6 +139,8 @@ async function fetchMosquesFromAPI(): Promise<Mosque[]> {
     }
 
     const data: WPMosque[] = await response.json();
+    console.log("mosques2", data.map(mapWPMosqueToMosque));
+
     return data.map(mapWPMosqueToMosque);
   } catch (error) {
     console.error("Failed to fetch mosques:", error);
