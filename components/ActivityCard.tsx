@@ -1,15 +1,5 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import {
-  Canvas,
-  LinearGradient,
-  Rect,
-  Image,
-  useImage,
-  vec,
-  Mask,
-  RoundedRect,
-} from "@shopify/react-native-skia";
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import {
   Colors,
   Spacing,
@@ -23,7 +13,8 @@ import { CATEGORIES } from "@/constants/categories";
 import { Badge } from "@/components/ui/Badge";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-
+import { LinearGradient } from "expo-linear-gradient";
+import LocationIcon from "@/assets/icons/location.svg";
 interface ActivityCardProps {
   index: number;
   activity: Activity;
@@ -44,17 +35,8 @@ export function ActivityCard({
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const { t } = useTranslation();
-  const image = useImage(imageUrl);
-  const rrct = {
-    rect: { x: 0, y: 0, width: imageWidth, height: imageHeight },
-    topLeft: { x: 0, y: 0 },
-    topRight: { x: 0, y: 0 },
-    bottomRight: { x: 0, y: 0 },
-    bottomLeft: { x: 0, y: 0 },
-  };
   const category = CATEGORIES[activity.categoryId];
   const isDark = colorScheme === "dark";
-
   const getDayName = (dayIndex?: number) => {
     if (dayIndex === undefined) return "";
     const days = [
@@ -73,7 +55,6 @@ export function ActivityCard({
     activity.type === "recurring"
       ? `${getDayName(activity.dayOfWeek)} • ${activity.startTime}`
       : `${activity.date} • ${activity.startTime}`;
-
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -84,37 +65,25 @@ export function ActivityCard({
         isDark ? {} : Shadows.light,
       ]}
     >
-      {/* Image Section with Skia Mask */}
-      {imageUrl && image && (
+      {/* Image Section with react-native Image + gradient fade */}
+      {imageUrl && (
         <View
           style={[
             styles.imageContainer,
-            { transform: [{ scaleX: index === 1 ? -1 : 1 }] },
+            // { transform: [{ scaleX: index === 1 ? -1 : 1 }] },
           ]}
         >
-          <Canvas style={{ height: "100%" }}>
-            <Mask
-              mode="alpha"
-              mask={
-                <RoundedRect rect={rrct}>
-                  <LinearGradient
-                    start={vec(index === 1 ? 120 : 0, 0)}
-                    end={vec(index === 1 ? 0 : 120, 0)}
-                    colors={["white", Colors.light.primary + "60"]}
-                  />
-                </RoundedRect>
-              }
-            >
-              <Image
-                image={image}
-                x={0}
-                y={0}
-                width={120}
-                height={imageHeight}
-                fit="cover"
-              />
-            </Mask>
-          </Canvas>
+          <Image
+            source={{ uri: imageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={[Colors["dark"].primary + "20", theme.card]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 2, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
         </View>
       )}
 
@@ -160,7 +129,7 @@ export function ActivityCard({
         </Text>
 
         <View style={styles.row}>
-          <Ionicons name="location-outline" size={14} color={theme.icon} />
+          <LocationIcon width={22} height={22} />
           <Text style={[styles.mosque, { color: theme.icon }]}>
             {mosqueName}
           </Text>

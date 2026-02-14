@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,21 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ACTIVITIES, MOSQUES } from "@/constants/mockData";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
 import { CATEGORIES } from "@/constants/categories";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/Badge";
 import { handleOpenMaps } from "@/lib/location";
+import { useEventsStore } from "@/lib/stores/eventsStore";
+import { useScheduleStore } from "@/lib/stores/scheduleStore";
+import { AddToScheduleSheet } from "@/components/AddToScheduleSheet";
+import * as Haptics from "expo-haptics";
 
 export default function EventDetails() {
   const router = useRouter();
@@ -26,11 +31,31 @@ export default function EventDetails() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
-  const activity = ACTIVITIES.find((a) => a.id === id);
+  const { events, fetchEvents, isLoading } = useEventsStore();
+  const isEventSaved = useScheduleStore((s) => s.isEventSaved);
+  const [sheetVisible, setSheetVisible] = useState(false);
+
+  useEffect(() => {
+    if (events.length === 0) {
+      fetchEvents();
+    }
+  }, [events.length, fetchEvents]);
+
+  const { mosques } = useMosquesStore();
+
+  const activity = events.find((a) => a.id === id);
   const mosque = activity
-    ? MOSQUES.find((m) => m.id === activity.mosqueId)
+    ? mosques.find((m) => m.id === activity.mosqueId)
     : undefined;
   const category = activity ? CATEGORIES[activity.categoryId] : null;
+
+  if (isLoading && !activity) {
+    return (
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
 
   if (!activity || !category) {
     return (
@@ -125,7 +150,7 @@ export default function EventDetails() {
               </Text>
             </Section>
 
-            {mosque && (
+            {mosque ? (
               <TouchableOpacity
                 onPress={() => handleOpenMaps(mosque)}
                 style={styles.mosqueLink}
@@ -140,7 +165,15 @@ export default function EventDetails() {
                   {mosque.name} - {mosque.city} (اضغط للتفاصيل)
                 </Text>
               </TouchableOpacity>
-            )}
+            ) : activity.mosqueName ? (
+              <View style={styles.mosqueLink}>
+                <Ionicons name="location" size={18} color={theme.primary} />
+                <Text style={[styles.mosqueLinkText, { color: theme.primary }]}>
+                  {activity.mosqueName}
+                  {activity.mosqueCity ? ` - ${activity.mosqueCity}` : ""}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* 3. Info Grid */}
@@ -162,8 +195,63 @@ export default function EventDetails() {
               isDark={isDark}
             />
           </View>
+
+          {/* Save to schedule */}
+          {(activity.type === "recurring" || activity.type === "one_off") && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                if (isEventSaved(activity.id)) {
+                  Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Warning,
+                  );
+                  return;
+                }
+                setSheetVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              }}
+              style={[
+                styles.saveBtn,
+                {
+                  backgroundColor: isEventSaved(activity.id)
+                    ? theme.primary + "18"
+                    : theme.primary,
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Ionicons
+                name={
+                  isEventSaved(activity.id)
+                    ? "checkmark-circle"
+                    : "bookmark-outline"
+                }
+                size={20}
+                color={isEventSaved(activity.id) ? theme.primary : "#fff"}
+              />
+              <Text
+                style={[
+                  styles.saveBtnText,
+                  {
+                    color: isEventSaved(activity.id) ? theme.primary : "#fff",
+                  },
+                ]}
+              >
+                {isEventSaved(activity.id)
+                  ? "تم الحفظ في الجدول"
+                  : "حفظ في الجدول"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
+
+      {/* Schedule Sheet */}
+      <AddToScheduleSheet
+        visible={sheetVisible}
+        activity={activity}
+        onClose={() => setSheetVisible(false)}
+      />
     </>
   );
 }
@@ -308,5 +396,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.rsans,
     lineHeight: 24,
     textAlign: "left",
+  },
+  // Save to schedule button
+  saveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    marginTop: Spacing.lg,
+  },
+  saveBtnText: {
+    fontSize: 16,
+    fontFamily: Fonts.bdsans,
   },
 });

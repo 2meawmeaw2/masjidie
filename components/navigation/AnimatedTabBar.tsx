@@ -223,7 +223,7 @@ function TabButton({
           animatedPillStyle,
           {
             backgroundColor:
-              colorScheme === "dark" ? `${colors.tint}20` : `${colors.tint}15`,
+              colorScheme === "dark" ? `${colors.tint}30` : `${colors.tint}25`,
             borderRadius: BorderRadius.lg,
             position: "absolute",
             top: 0,

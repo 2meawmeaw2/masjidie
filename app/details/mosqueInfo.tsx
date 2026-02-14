@@ -12,7 +12,8 @@ import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { ACTIVITIES, MOSQUES } from "@/constants/mockData";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useEventsStore } from "@/lib/stores/eventsStore";
 import { ActivityCard } from "@/components/ActivityCard";
 import { handleOpenMaps } from "@/lib/location";
 
@@ -23,15 +24,16 @@ export default function MosqueDetails() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
-  // Mocking extended data
-  const baseMosque = MOSQUES[0];
-  const mosque = baseMosque
-    ? {
-        ...baseMosque,
-        capacity: 1200,
-        imamName: "الشيخ عبد الرحمن السديس",
-      }
-    : undefined;
+  // Get mosques and events from stores
+  const { mosques, fetchMosques } = useMosquesStore();
+  const { events, fetchEvents } = useEventsStore();
+
+  React.useEffect(() => {
+    if (mosques.length === 0) fetchMosques();
+    if (events.length === 0) fetchEvents();
+  }, []);
+
+  const mosque = mosques.find((m) => m.id === id);
 
   if (!mosque) {
     return (
@@ -42,7 +44,6 @@ export default function MosqueDetails() {
       </View>
     );
   }
-  console.error(id);
   return (
     <>
       <Stack.Screen
@@ -115,14 +116,16 @@ export default function MosqueDetails() {
             <StatCard
               icon="people"
               label="السعة"
-              value={`${mosque.capacity} مصلي`}
+              value={`${mosque.capacity ?? "غير محدد"} مصلي`}
               theme={theme}
               isDark={isDark}
             />
             <StatCard
               icon="person"
               label="الإمام"
-              value={mosque.imamName}
+              value={
+                mosque.imam ?? "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
+              }
               theme={theme}
               isDark={isDark}
             />
@@ -166,26 +169,23 @@ export default function MosqueDetails() {
 
           {/* 5. Upcoming Events (Restored) */}
           <Section title="الأحداث القادمة" theme={theme}>
-            {ACTIVITIES.slice(0, 3).map((activity, index) => {
-              console.error(id);
-
-              if (activity.mosqueId !== id) {
-                return null;
-              }
-              const mosque = MOSQUES.find((m) => m.id === activity.mosqueId);
-              return (
-                <ActivityCard
-                  index={index}
-                  key={activity.id}
-                  activity={activity}
-                  mosqueName={mosque?.name ?? ""}
-                  imageUrl={activity?.imageUrl}
-                  onPress={() => {
-                    router.push(`/details/eventInfo?id=${activity.id}`);
-                  }}
-                />
-              );
-            })}
+            {events
+              .filter((activity) => activity.mosqueId === id)
+              .slice(0, 3)
+              .map((activity, index) => {
+                return (
+                  <ActivityCard
+                    index={index}
+                    key={activity.id}
+                    activity={activity}
+                    mosqueName={mosque?.name ?? ""}
+                    imageUrl={activity?.imageUrl}
+                    onPress={() => {
+                      router.push(`/details/eventInfo?id=${activity.id}`);
+                    }}
+                  />
+                );
+              })}
           </Section>
         </View>
       </ScrollView>

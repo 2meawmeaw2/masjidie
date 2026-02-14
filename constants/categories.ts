@@ -8,8 +8,7 @@ export type CategoryId =
   | "seerah"
   | "hadith"
   | "children"
-  | "women"
-  | "other";
+  | "women";
 
 export const CATEGORIES: Record<
   CategoryId,
@@ -39,9 +38,4 @@ export const CATEGORIES: Record<
     color: "#EC4899",
   },
   women: { label: "categories.women", icon: "human-female", color: "#DB2777" },
-  other: {
-    label: "categories.other",
-    icon: "dots-horizontal",
-    color: "#6B7280",
-  },
 };

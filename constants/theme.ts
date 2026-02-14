@@ -1,36 +1,41 @@
-const tintColorLight = "#1B7A4E"; // Emerald Green
-const tintColorDark = "#34D399"; // Light Emerald for Dark Mode
+const tintColorLight = "#008D64"; // Deep Green
+const tintColorDark = "#09B573"; // Vibrant Green for Dark Mode
 
 export const Colors = {
   light: {
-    text: "#1F2937",
-    textSecondary: "#6B7280",
-    background: "#FFFFFF",
+    text: "#0F303F", // Your "Black" (Midnight Teal)
+    textSecondary: "#4A6572", // Muted Teal/Grey
+    background: "#E7F2F2", // Your "White" (Ice Blue/Mint)
     tint: tintColorLight,
-    icon: "#6B7280",
+    icon: "#4A6572",
     tabIconDefault: "#9CA3AF",
     tabIconSelected: tintColorLight,
-    primary: "#1B7A4E",
-    secondary: "#F5E6CC", // Warm Sand
-    accent: "#D97706", // Amber for highlights
-    card: "#F9FAFB",
-    border: "#E5E7EB",
+    primary: "#008D64",
+    secondary: "#E2AE1A", // Gold (used as secondary for light mode)
+    accent: "#E2AE1A", // Gold
+    card: "#FFFFFF", // Pure white for cards to pop against the #E7F2F2 bg
+    border: "#CFD8DC", // Blue-grey border to match the theme
     error: "#EF4444",
   },
   dark: {
-    text: "#F9FAFB",
-    textSecondary: "#9CA3AF",
-    background: "#111827", // Dark Gray
+    text: "#E7F2F2", // Your "White"
+    textSecondary: "#94A3B8", // Soft Grey-Blue
+    background: "#0F303F", // Your "Black" (Midnight Teal)
     tint: tintColorDark,
-    icon: "#9CA3AF",
+    icon: "#94A3B8",
     tabIconDefault: "#4B5563",
     tabIconSelected: tintColorDark,
-    primary: "#34D399",
-    secondary: "#78350F", // Dark Wood for contrast
-    accent: "#F59E0B",
-    card: "#1F2937",
-    border: "#374151",
+    primary: "#09B573",
+    secondary: "#5C4505", // Darker Gold/Bronze for contrast
+    accent: "#E2AE1A", // Gold
+    card: "#1B4152", // A slightly lighter shade of the midnight teal
+    border: "#285363", // Subtle teal border
     error: "#F87171",
+  },
+  // Added specifically for gradient use cases if needed
+  gradient: {
+    start: "#09B573",
+    end: "#008D64",
   },
 };
 
@@ -52,7 +57,7 @@ export const BorderRadius = {
 
 export const Shadows = {
   light: {
-    shadowColor: "#000",
+    shadowColor: "#0F303F", // Using the midnight teal for shadow instead of pure black
     shadowOffset: {
       width: 0,
       height: 2,
@@ -67,7 +72,7 @@ export const Shadows = {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 3.84,
     elevation: 3,
   },

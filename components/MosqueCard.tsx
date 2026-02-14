@@ -32,7 +32,6 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
     // If you passed an extra onPress (e.g. for analytics), run it too
     if (onPress) onPress();
   };
-  console.error(mosque.id);
   return (
     <TouchableOpacity
       activeOpacity={0.8}
