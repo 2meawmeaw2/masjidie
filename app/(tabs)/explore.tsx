@@ -116,7 +116,7 @@ export default function ExploreScreen() {
 
       return matchesSearch && matchesCity && matchesCategory;
     });
-  }, [searchQuery, selectedCities, selectedCategories]);
+  }, [searchQuery, selectedCities, selectedCategories, mosquesWithDistance]);
 
   const toggleCity = useCallback((city: string) => {
     // Haptic feedback for selection

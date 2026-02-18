@@ -164,7 +164,6 @@ function mapWPEventToActivity(wpEvent: WPEvent): Activity {
   // instructor from الإمام
   const instructor =
     (acf?.["الإمام"] as string) || (acf?.instructor as string) || undefined;
-  console.log("sdads", mosqueName + " " + mosqueCity);
   return {
     id,
     mosqueId: mosqueName + " " + mosqueCity,
