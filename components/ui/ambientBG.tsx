@@ -1,21 +1,14 @@
-import React, { useEffect } from "react";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Canvas, Rect, Shader, Skia } from "@shopify/react-native-skia";
+import React, { memo, useEffect } from "react";
+import { useWindowDimensions, ViewStyle } from "react-native";
 import {
-  Canvas,
-  Rect,
-  Shader,
-  Skia,
-  // useDerivedValue was removed from here
-} from "@shopify/react-native-skia";
-import {
+  useDerivedValue,
   useSharedValue,
   withRepeat,
   withTiming,
-  Easing,
-  useDerivedValue, // <--- Moved to here
 } from "react-native-reanimated";
-import { useWindowDimensions, ViewStyle } from "react-native";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 // ... [Shader code remains exactly the same] ...
 const source = Skia.RuntimeEffect.Make(`
@@ -93,21 +86,22 @@ const hexToFloat4 = (hex: string) => {
   return [color[0], color[1], color[2], color[3]];
 };
 
-export const AmbientBackground = ({ style }: Props) => {
+export const AmbientBackground = memo(({ style }: Props) => {
   const { width, height } = useWindowDimensions();
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
-
   const time = useSharedValue(0);
 
   useEffect(() => {
+    time.value = 0;
+    console.log("meaw");
     time.value = withRepeat(
-      withTiming(100, { duration: 2000, easing: Easing.linear }),
-      -1, // Infinite iterations
-      true, // <--- Set Reverse to TRUE to enable yoyo
+      withTiming(100, { duration: 6000 }), // slow, large range
+      -1,
+      false,
     );
   }, []);
-  // derived values from Reanimated work seamlessly with Skia props
+
   const uniforms = useDerivedValue(() => {
     return {
       u_resolution: [width, height],
@@ -130,4 +124,7 @@ export const AmbientBackground = ({ style }: Props) => {
       </Rect>
     </Canvas>
   );
-};
+});
+
+// Optional: Add a display name for easier debugging in React DevTools
+AmbientBackground.displayName = "AmbientBackground";

@@ -1,25 +1,29 @@
+import { PortalProvider } from "@gorhom/portal";
 import {
-  ThemeProvider as NavThemeProvider,
   DarkTheme,
   DefaultTheme,
+  ThemeProvider as NavThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { AppState, I18nManager } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { I18nManager, Platform } from "react-native";
 
-import "@/lib/i18n";
-import { initializeAlarms } from "@/lib/alarms";
 import BatteryOptimizationModal from "@/components/BatteryOptimizationModal";
 import { fontAssets } from "@/constants/fonts";
 import {
   ThemeProvider as AppThemeProvider,
   useTheme,
 } from "@/context/ThemeContext";
+import { initializeAlarms } from "@/lib/alarms";
+import "@/lib/i18n";
+import { useAdhanStore } from "@/lib/stores/adhanStore";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,13 +51,35 @@ if (!I18nManager.isRTL) {
 function RootLayoutContent() {
   const { theme } = useTheme();
   const [loaded] = useFonts(fontAssets);
+  const { initialize } = useAuthStore();
+
+  const appStateRef = useRef(AppState.currentState);
 
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
       initializeAlarms();
+      initialize();
     }
   }, [loaded]);
+
+  // Recalculate prayer times when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (
+        appStateRef.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        const { initialized, recalculateAndSchedule } =
+          useAdhanStore.getState();
+        if (initialized) {
+          recalculateAndSchedule();
+        }
+      }
+      appStateRef.current = nextState;
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (!loaded) {
     return null;
@@ -76,6 +102,9 @@ function RootLayoutContent() {
           name="details/schoolInfo"
           options={{ animation: "ios_from_right" }}
         />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="admin" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
       <BatteryOptimizationModal />
@@ -85,8 +114,12 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <AppThemeProvider>
-      <RootLayoutContent />
-    </AppThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PortalProvider>
+        <AppThemeProvider>
+          <RootLayoutContent />
+        </AppThemeProvider>
+      </PortalProvider>
+    </GestureHandlerRootView>
   );
 }

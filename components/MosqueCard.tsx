@@ -11,6 +11,7 @@ import {
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Mosque } from "@/constants/mockData";
+import { Ionicons } from "@expo/vector-icons";
 import LocationIcon from "@/assets/icons/location.svg";
 
 interface MosqueCardProps {
@@ -66,11 +67,23 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
           </Text>
         </View>
 
-        <View style={styles.badge}>
-          <Text style={[styles.distance, { color: theme.primary }]}>
-            {mosque.distance} كم
-          </Text>
-        </View>
+        {mosque.distance !== undefined && (
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: isDark
+                  ? theme.primary + "20"
+                  : theme.primary + "12",
+              },
+            ]}
+          >
+            <Ionicons name="navigate-outline" size={11} color={theme.primary} />
+            <Text style={[styles.distance, { color: theme.primary }]}>
+              {mosque.distance} كم
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -84,10 +97,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     flexDirection: "row",
     direction: "ltr",
-    height: 100,
+    height: 110,
   },
   image: {
-    width: 100,
+    width: 110,
     height: "100%",
     backgroundColor: "#E5E7EB",
   },
@@ -112,10 +125,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(27, 122, 78, 0.1)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
   },
   distance: {
     fontSize: 12,

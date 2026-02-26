@@ -34,7 +34,6 @@ export default function MosqueDetails() {
   }, []);
 
   const mosque = mosques.find((m) => m.id === id);
-  console.log(events, "tofilter");
   if (!mosque) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
@@ -44,28 +43,10 @@ export default function MosqueDetails() {
       </View>
     );
   }
-  console.log("meaw");
-
-  // --- Debugging Logic Start ---
-  console.log("--------------------------------------------------");
-  console.log("DEBUG: Inspecting Events for Mosque ID:", id);
-  console.log("DEBUG: Total Events in Store:", events.length);
-
-  // 1. Filter
-  const filteredEvents = events.filter((activity) => {
-    const isMatch = String(activity.mosqueId) === String(id);
-    console.log(
-      `DEBUG: Event ID: ${activity.id} | Activity MosqueID: "${activity.mosqueId}" | Target ID: "${id}" | Match: ${isMatch}`,
-    );
-    return isMatch;
-  });
-  console.log("DEBUG: Filtered Events Count:", filteredEvents.length);
-
-  // 2. Slice
+  const filteredEvents = events.filter(
+    (activity) => String(activity.mosqueId) === String(id),
+  );
   const eventsSlice = filteredEvents.slice(0, 3);
-  console.log("DEBUG: Sliced Events:", eventsSlice);
-  console.log("--------------------------------------------------");
-  // --- Debugging Logic End ---
   return (
     <>
       <Stack.Screen
@@ -172,7 +153,7 @@ export default function MosqueDetails() {
                     {
                       backgroundColor: isDark
                         ? theme.card
-                        : "rgba(27, 122, 78, 0.08)",
+                        : theme.primary + "14",
                     },
                   ]}
                 >
@@ -230,7 +211,7 @@ const StatCard = ({ icon, label, value, theme, isDark }: any) => (
     <View
       style={[
         styles.iconCircle,
-        { backgroundColor: isDark ? "#333" : "#f2f2f2" },
+        { backgroundColor: isDark ? theme.card : theme.background },
       ]}
     >
       <Ionicons name={icon} size={22} color={theme.primary} />
@@ -256,7 +237,7 @@ const EventItem = ({ title, date, time, theme, isDark }: any) => (
     <View
       style={[
         styles.dateBox,
-        { backgroundColor: isDark ? "#333" : "rgba(27, 122, 78, 0.1)" },
+        { backgroundColor: isDark ? theme.card : theme.primary + "18" },
       ]}
     >
       <Text style={[styles.dateText, { color: theme.primary }]}>

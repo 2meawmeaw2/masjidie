@@ -32,6 +32,24 @@
     "distance": "{{km}} km",
     "time_separator": "•"
   },
+  "explore": {
+    "filter_results": "Filtrer les résultats",
+    "reset": "Réinitialiser",
+    "reset_filters": "Réinitialiser les filtres",
+    "clear_all": "Tout effacer",
+    "show_results": "Afficher les résultats",
+    "show_results_count": "Afficher les résultats ({{count}} filtre)",
+    "no_results": "Aucune mosquée ne correspond à votre recherche",
+    "no_results_hint": "Essayez de modifier votre recherche ou vos filtres",
+    "city": "Ville",
+    "distance_label": "Distance",
+    "sort": "Trier",
+    "sort_nearest": "Plus proche",
+    "sort_name": "Nom",
+    "distance_near": "Proche (< 2 km)",
+    "distance_medium": "Moyen (< 10 km)",
+    "distance_far": "Loin (< 25 km)"
+  },
   "settings": {
     "title": "Paramètres",
     "appearance": "Apparence",
@@ -48,5 +66,21 @@
     "noResults": "Aucun résultat trouvé",
     "savedLocation": "Emplacement enregistré",
     "clearLocation": "Effacer l'emplacement enregistré"
+  },
+  "adhan": {
+    "title": "Adhan",
+    "fajr": "Fajr",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha",
+    "calculationMethod": "Méthode de calcul",
+    "notificationBody": "C'est l'heure de la prière de {{prayer}}",
+    "algerian": "Algérienne",
+    "muslimWorldLeague": "Ligue Islamique Mondiale",
+    "egyptian": "Égyptienne",
+    "ummAlQura": "Oum Al-Qura",
+    "northAmerica": "Amérique du Nord (ISNA)",
+    "karachi": "Karachi"
   }
 }

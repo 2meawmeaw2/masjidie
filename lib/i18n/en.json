@@ -32,6 +32,24 @@
     "distance": "{{km}} km",
     "time_separator": "•"
   },
+  "explore": {
+    "filter_results": "Filter Results",
+    "reset": "Reset",
+    "reset_filters": "Reset Filters",
+    "clear_all": "Clear All",
+    "show_results": "Show Results",
+    "show_results_count": "Show Results ({{count}} filter)",
+    "no_results": "No mosques match your search",
+    "no_results_hint": "Try changing your search or filters",
+    "city": "City",
+    "distance_label": "Distance",
+    "sort": "Sort",
+    "sort_nearest": "Nearest",
+    "sort_name": "Name",
+    "distance_near": "Near (< 2 km)",
+    "distance_medium": "Medium (< 10 km)",
+    "distance_far": "Far (< 25 km)"
+  },
   "settings": {
     "title": "Settings",
     "appearance": "Appearance",
@@ -48,5 +66,21 @@
     "noResults": "No results found",
     "savedLocation": "Saved Location",
     "clearLocation": "Clear Saved Location"
+  },
+  "adhan": {
+    "title": "Adhan",
+    "fajr": "Fajr",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha",
+    "calculationMethod": "Calculation Method",
+    "notificationBody": "It's time for {{prayer}} prayer",
+    "algerian": "Algerian",
+    "muslimWorldLeague": "Muslim World League",
+    "egyptian": "Egyptian",
+    "ummAlQura": "Umm Al-Qura",
+    "northAmerica": "North America (ISNA)",
+    "karachi": "Karachi"
   }
 }

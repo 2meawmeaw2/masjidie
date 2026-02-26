@@ -9,9 +9,9 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
-  FlatList,
 } from "react-native";
-import { Colors } from "@/constants/theme";
+import { useRouter } from "expo-router";
+import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/lib/i18n";
@@ -25,15 +25,34 @@ import {
   clearSavedLocation,
   LocationData,
 } from "@/lib/storage";
+import { useAuthStore } from "@/lib/stores/authStore";
+import {
+  useAdhanStore,
+  PrayerName,
+  MethodKey,
+} from "@/lib/stores/adhanStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const { theme, toggleTheme } = useTheme();
   const colors = Colors[theme];
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { session } = useAuthStore();
   const [currentLocation, setCurrentLocation] =
     useState<Location.LocationObject | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const { t } = useTranslation();
   const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
+
+  // Adhan Store
+  const {
+    todayTimes,
+    preferences: adhanPrefs,
+    togglePrayer,
+    setCalculationMethod,
+    recalculateAndSchedule,
+  } = useAdhanStore();
 
   // Search State
   const [query, setQuery] = useState("");
@@ -99,6 +118,7 @@ export default function ProfileScreen() {
       };
       await saveLocation(locationData);
       setSavedLocationData(locationData);
+      recalculateAndSchedule();
       Alert.alert(
         t("settings.locationUpdated"),
         `Lat: ${loc.coords.latitude.toFixed(4)}, Long: ${loc.coords.longitude.toFixed(4)}`,
@@ -120,6 +140,7 @@ export default function ProfileScreen() {
     setSavedLocationData(locationData);
     setQuery("");
     setResults([]);
+    recalculateAndSchedule();
     Alert.alert(t("settings.locationSaved"), item.display_name);
   };
 
@@ -166,29 +187,40 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + Spacing.md },
+      ]}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       <Text style={[styles.header, { color: colors.text }]}>
-        temp{t("settings.title")}
+        {t("settings.title")}
       </Text>
 
-      {/* Appearance Section */}
+      {/* Appearance & Language Section — grouped together */}
       <View style={styles.section}>
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
           {t("settings.appearance").toUpperCase()}
         </Text>
-        {renderSettingItem(
-          "moon",
-          t("settings.darkMode"),
-          <Switch
-            value={theme === "dark"}
-            onValueChange={toggleTheme}
-            trackColor={{ false: "#767577", true: colors.primary }}
-            thumbColor={"#f4f3f4"}
-          />,
-          t("settings.darkModeDesc"),
-        )}
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          {renderSettingItem(
+            "moon",
+            t("settings.darkMode"),
+            <Switch
+              value={theme === "dark"}
+              onValueChange={toggleTheme}
+              trackColor={{ false: "#767577", true: colors.primary }}
+              thumbColor={"#f4f3f4"}
+            />,
+            t("settings.darkModeDesc"),
+          )}
+        </View>
       </View>
 
       {/* Language Section */}
@@ -207,7 +239,11 @@ export default function ProfileScreen() {
               key={lang}
               style={[
                 styles.languageOption,
-                currentLanguage === lang && { backgroundColor: colors.primary },
+                currentLanguage === lang && {
+                  backgroundColor: colors.primary,
+                  borderRadius: BorderRadius.md,
+                  margin: 3,
+                },
               ]}
               onPress={() => changeLanguage(lang)}
             >
@@ -227,6 +263,77 @@ export default function ProfileScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+      </View>
+
+      {/* Adhan Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
+          {t("adhan.title").toUpperCase()}
+        </Text>
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          {(["fajr", "dhuhr", "asr", "maghrib", "isha"] as PrayerName[]).map(
+            (prayer) => {
+              const timeEntry = todayTimes.find((t) => t.name === prayer);
+              const timeStr = timeEntry
+                ? timeEntry.time.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "--:--";
+              return renderSettingItem(
+                prayer === "fajr"
+                  ? "sunny"
+                  : prayer === "maghrib"
+                    ? "moon"
+                    : "time",
+                t(`adhan.${prayer}`),
+                <Switch
+                  value={adhanPrefs.enabledPrayers[prayer]}
+                  onValueChange={() => togglePrayer(prayer)}
+                  trackColor={{ false: "#767577", true: colors.primary }}
+                  thumbColor="#f4f3f4"
+                />,
+                timeStr,
+              );
+            },
+          )}
+          {renderSettingItem(
+            "calculator",
+            t("adhan.calculationMethod"),
+            <TouchableOpacity
+              onPress={() => {
+                const methods: { key: MethodKey; label: string }[] = [
+                  { key: "algerian", label: t("adhan.algerian") },
+                  { key: "muslimWorldLeague", label: t("adhan.muslimWorldLeague") },
+                  { key: "egyptian", label: t("adhan.egyptian") },
+                  { key: "ummAlQura", label: t("adhan.ummAlQura") },
+                  { key: "northAmerica", label: t("adhan.northAmerica") },
+                  { key: "karachi", label: t("adhan.karachi") },
+                ];
+                Alert.alert(
+                  t("adhan.calculationMethod"),
+                  undefined,
+                  methods.map((m) => ({
+                    text:
+                      m.key === adhanPrefs.calculationMethod
+                        ? `✓ ${m.label}`
+                        : m.label,
+                    onPress: () => setCalculationMethod(m.key),
+                  })),
+                );
+              }}
+            >
+              <Text style={[styles.methodText, { color: colors.primary }]}>
+                {t(`adhan.${adhanPrefs.calculationMethod}`)}
+              </Text>
+            </TouchableOpacity>,
+          )}
         </View>
       </View>
 
@@ -255,6 +362,7 @@ export default function ProfileScreen() {
                 styles.savedLocationText,
                 { color: colors.textSecondary },
               ]}
+              numberOfLines={2}
             >
               {savedLocationData.display_name}
             </Text>
@@ -262,36 +370,43 @@ export default function ProfileScreen() {
               onPress={handleClearLocation}
               style={styles.clearLocationButton}
             >
-              <Text style={{ color: colors.error, fontSize: 12 }}>
+              <Text style={[styles.clearLocationText, { color: colors.error }]}>
                 {t("settings.clearLocation")}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Current Location Button */}
-        {renderSettingItem(
-          "locate",
-          t("settings.currentLocation"),
-          <TouchableOpacity
-            onPress={handleLocationRefresh}
-            disabled={loadingLocation}
-          >
-            {loadingLocation ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Ionicons name="refresh" size={24} color={colors.text} />
-            )}
-          </TouchableOpacity>,
-          currentLocation
-            ? `${currentLocation.coords.latitude.toFixed(
-                4,
-              )}, ${currentLocation.coords.longitude.toFixed(4)}`
-            : t("settings.refreshLocation"),
-        )}
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          {/* Current Location Button */}
+          {renderSettingItem(
+            "locate",
+            t("settings.currentLocation"),
+            <TouchableOpacity
+              onPress={handleLocationRefresh}
+              disabled={loadingLocation}
+            >
+              {loadingLocation ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="refresh" size={22} color={colors.primary} />
+              )}
+            </TouchableOpacity>,
+            currentLocation
+              ? `${currentLocation.coords.latitude.toFixed(
+                  4,
+                )}, ${currentLocation.coords.longitude.toFixed(4)}`
+              : t("settings.refreshLocation"),
+          )}
+        </View>
 
         {/* Search Input */}
-        <View style={{ marginTop: 15 }}>
+        <View style={{ marginTop: Spacing.md }}>
           <View
             style={[
               styles.searchContainer,
@@ -305,7 +420,7 @@ export default function ProfileScreen() {
               name="search"
               size={20}
               color={colors.textSecondary}
-              style={{ marginRight: 10 }}
+              style={{ marginRight: Spacing.sm }}
             />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
@@ -337,7 +452,7 @@ export default function ProfileScreen() {
                   ]}
                   onPress={() => handleSelectLocation(item)}
                 >
-                  <Text style={{ color: colors.text }}>
+                  <Text style={[styles.resultText, { color: colors.text }]}>
                     {item.display_name}
                   </Text>
                 </TouchableOpacity>
@@ -346,17 +461,67 @@ export default function ProfileScreen() {
           )}
           {query.length > 2 && !isSearching && results.length === 0 && (
             <Text
-              style={{
-                color: colors.textSecondary,
-                marginTop: 5,
-                fontSize: 12,
-                marginLeft: 5,
-              }}
+              style={[styles.noResultsText, { color: colors.textSecondary }]}
             >
               {t("settings.noResults")}
             </Text>
           )}
         </View>
+      </View>
+
+      {/* Admin Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
+          ADMIN
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.adminButton,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={() =>
+            session ? router.push("/admin") : router.push("/auth/login")
+          }
+          activeOpacity={0.7}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+            <Ionicons
+              name={session ? "shield-checkmark" : "shield-outline"}
+              size={22}
+              color={colors.primary}
+            />
+          </View>
+          <Text style={[styles.settingTitle, { color: colors.text, flex: 1 }]}>
+            {session ? "Admin Dashboard" : "Admin Login"}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        {!session && (
+          <TouchableOpacity
+            style={[
+              styles.adminButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                marginTop: Spacing.sm,
+              },
+            ]}
+            onPress={() => router.push("/auth/register")}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+              <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+            </View>
+            <Text style={[styles.settingTitle, { color: colors.text, flex: 1 }]}>
+              Register Your Mosque/School
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -364,26 +529,37 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  contentContainer: { padding: 20, paddingTop: 60, paddingBottom: 400 },
+  contentContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: 120,
+  },
   header: {
-    fontSize: 34,
-    fontWeight: "bold",
-    marginBottom: 30,
+    fontSize: 28,
+    fontFamily: Fonts.bdsans,
+    marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
   },
   section: {
-    marginBottom: 30,
+    marginBottom: Spacing.lg,
   },
   sectionHeader: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 10,
+    fontSize: 12,
+    fontFamily: Fonts.mdsans,
+    marginBottom: Spacing.sm,
     letterSpacing: 1,
+    paddingHorizontal: Spacing.xs,
+  },
+  sectionCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    overflow: "hidden",
   },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: Spacing.md - 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   settingLeft: {
@@ -394,78 +570,110 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: BorderRadius.sm + 2,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: Spacing.sm + 4,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 15,
+    fontFamily: Fonts.mdsans,
   },
   settingDescription: {
     fontSize: 12,
+    fontFamily: Fonts.rsans,
     marginTop: 2,
+  },
+  methodText: {
+    fontSize: 14,
+    fontFamily: Fonts.mdsans,
   },
   languageContainer: {
     flexDirection: "row",
-    borderRadius: 12,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
     overflow: "hidden",
-    marginTop: 5,
+    padding: 3,
   },
   languageOption: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: Spacing.sm + 2,
     alignItems: "center",
     justifyContent: "center",
   },
   languageText: {
-    fontWeight: "600",
+    fontFamily: Fonts.mdsans,
     fontSize: 14,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    height: 48,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: Fonts.rsans,
   },
   resultsContainer: {
-    marginTop: 5,
+    marginTop: Spacing.xs,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: BorderRadius.lg,
     overflow: "hidden",
   },
   resultItem: {
-    padding: 12,
+    padding: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  resultText: {
+    fontSize: 14,
+    fontFamily: Fonts.rsans,
+  },
+  noResultsText: {
+    marginTop: Spacing.xs,
+    fontSize: 12,
+    fontFamily: Fonts.rsans,
+    paddingHorizontal: Spacing.xs,
+  },
   savedLocationContainer: {
-    padding: 15,
-    borderRadius: 12,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    marginBottom: 15,
+    marginBottom: Spacing.md,
   },
   savedLocationHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: Spacing.xs,
   },
   savedLocationTitle: {
-    fontWeight: "600",
-    marginLeft: 8,
+    fontFamily: Fonts.mdsans,
+    fontSize: 15,
+    marginLeft: Spacing.sm,
   },
   savedLocationText: {
     fontSize: 14,
-    marginBottom: 10,
+    fontFamily: Fonts.rsans,
+    marginBottom: Spacing.sm,
+    lineHeight: 20,
   },
   clearLocationButton: {
     alignSelf: "flex-end",
+  },
+  clearLocationText: {
+    fontSize: 12,
+    fontFamily: Fonts.mdsans,
+  },
+  adminButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.md - 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    gap: Spacing.sm + 4,
   },
 });

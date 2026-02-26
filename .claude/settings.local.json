@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx:*)",
+      "Bash(curl:*)",
+      "Bash(where:*)",
+      "Bash(\"/C/Program Files/Git/mingw64/bin/curl.exe\" -s -H \"Authorization: Bearer sbp_7405a1cdc1af8acb990da401187a38f15e1c8a80\" \"https://api.supabase.com/v1/projects\")",
+      "Bash(node:*)",
+      "Bash(claude mcp:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_7405a1cdc1af8acb990da401187a38f15e1c8a80 npx supabase:*)",
+      "Bash(python3 -c \"\nimport urllib.request\nimport json\n\nsql = ''''''CREATE TABLE IF NOT EXISTS public.mosques \\(\n  id text PRIMARY KEY,\n  name text NOT NULL,\n  address text DEFAULT \\\\''\\\\'',\n  city text DEFAULT \\\\''\\\\'',\n  image_url text DEFAULT \\\\''\\\\'',\n  maps_url text DEFAULT \\\\''\\\\'',\n  latitude float8 DEFAULT 0,\n  longitude float8 DEFAULT 0,\n  description text,\n  imam text,\n  capacity text,\n  services text,\n  created_at timestamptz DEFAULT now\\(\\),\n  updated_at timestamptz DEFAULT now\\(\\)\n\\);\n\nCREATE TABLE IF NOT EXISTS public.events_activities \\(\n  id text PRIMARY KEY,\n  mosque_id text REFERENCES public.mosques\\(id\\),\n  mosque_name text,\n  mosque_city text,\n  title text NOT NULL,\n  description text DEFAULT \\\\''\\\\'',\n  category_id text DEFAULT \\\\''lecture\\\\'',\n  type text DEFAULT \\\\''recurring\\\\'',\n  date date,\n  start_time text DEFAULT \\\\''\\\\'',\n  end_time text,\n  day_of_week int2,\n  instructor text,\n  image_url text DEFAULT \\\\''\\\\'',\n  created_at timestamptz DEFAULT now\\(\\),\n  updated_at timestamptz DEFAULT now\\(\\)\n\\);\n\nCREATE TABLE IF NOT EXISTS public.quran_schools \\(\n  id text PRIMARY KEY,\n  name text NOT NULL,\n  description text DEFAULT \\\\''\\\\'',\n  city text DEFAULT \\\\''\\\\'',\n  address text DEFAULT \\\\''\\\\'',\n  image_url text DEFAULT \\\\''\\\\'',\n  phone text,\n  email text,\n  website text,\n  founded text,\n  student_count int4,\n  programs text[] DEFAULT \\\\''{}\\\\'',\n  age_range text,\n  gender text DEFAULT \\\\''mixed\\\\'',\n  latitude float8 DEFAULT 0,\n  longitude float8 DEFAULT 0,\n  maps_url text,\n  created_at timestamptz DEFAULT now\\(\\),\n  updated_at timestamptz DEFAULT now\\(\\)\n\\);\n\nALTER TABLE public.mosques ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.events_activities ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.quran_schools ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY \"\"Allow public read\"\" ON public.mosques FOR SELECT USING \\(true\\);\nCREATE POLICY \"\"Allow public read\"\" ON public.events_activities FOR SELECT USING \\(true\\);\nCREATE POLICY \"\"Allow public read\"\" ON public.quran_schools FOR SELECT USING \\(true\\);''''''\n\npayload = json.dumps\\({''query'': sql}\\).encode\\(''utf-8''\\)\nreq = urllib.request.Request\\(\n    ''https://api.supabase.com/v1/projects/zghkaofihchhiziqukvw/database/query'',\n    data=payload,\n    headers={\n        ''Authorization'': ''Bearer sbp_7405a1cdc1af8acb990da401187a38f15e1c8a80'',\n        ''Content-Type'': ''application/json''\n    },\n    method=''POST''\n\\)\ntry:\n    with urllib.request.urlopen\\(req, timeout=30\\) as resp:\n        print\\(''Status:'', resp.status\\)\n        print\\(resp.read\\(\\).decode\\(\\)\\)\nexcept urllib.error.HTTPError as e:\n    print\\(''HTTP Error:'', e.code\\)\n    print\\(e.read\\(\\).decode\\(\\)\\)\nexcept Exception as e:\n    print\\(''Error:'', e\\)\n\")",
+      "Bash(python3:*)",
+      "WebSearch",
+      "Bash(cd:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)"
+    ]
+  }
+}

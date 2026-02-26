@@ -15,6 +15,9 @@ export interface Activity {
   dayOfWeek?: number; // 0=Sunday, ... 6=Saturday
   instructor?: string;
   imageUrl: string;
+  timeAnchor?: "fixed" | "prayer";
+  prayerId?: string;
+  prayerOffset?: number;
 }
 
 export interface Mosque {
@@ -137,6 +140,7 @@ export const ACTIVITIES: Activity[] = [
 
 export interface IslamicSchool {
   id: string;
+  mosqueId?: string;
   name: string;
   description: string;
   city: string;

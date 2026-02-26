@@ -20,7 +20,7 @@ export const Colors = {
   dark: {
     text: "#E7F2F2", // Your "White"
     textSecondary: "#94A3B8", // Soft Grey-Blue
-    background: "#0F303F", // Your "Black" (Midnight Teal)
+    background: "#0f303f", // Your "Black" (Midnight Teal)
     tint: tintColorDark,
     icon: "#94A3B8",
     tabIconDefault: "#4B5563",

@@ -83,7 +83,7 @@ export function IslamicSchoolCard({ school, onPress }: IslamicSchoolCardProps) {
               {
                 backgroundColor: isDark
                   ? theme.primary + "20"
-                  : "rgba(27, 122, 78, 0.1)",
+                  : theme.primary + "12",
               },
             ]}
           >
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     flexDirection: "row",
     direction: "ltr",
-    height: 110,
+    height: 120,
   },
   image: {
-    width: 100,
+    width: 110,
     height: "100%",
     backgroundColor: "#E5E7EB",
-    resizeMode: "stretch",
+    resizeMode: "cover",
   },
   content: {
     flex: 1,

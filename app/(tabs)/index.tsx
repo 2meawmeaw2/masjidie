@@ -1,36 +1,31 @@
-import React, { useEffect } from "react";
-import { useRouter } from "expo-router";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-  StatusBar,
-  ActivityIndicator,
-} from "react-native";
-import { Colors, Spacing, Fonts, BorderRadius } from "@/constants/theme";
-import { useTranslation } from "react-i18next";
+import Logo from "@/assets/logo.svg";
+import { ActivityCard } from "@/components/ActivityCard";
+import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
+import { MosqueCard } from "@/components/MosqueCard";
 import { CATEGORIES, CategoryId } from "@/constants/categories";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { calculateDistance, getPreferredLocation } from "@/lib/location";
 import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
-import { ActivityCard } from "@/components/ActivityCard";
-import { MosqueCard } from "@/components/MosqueCard";
-import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // Changed import
-import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import Logo from "@/assets/logo.svg";
-import {
-  getCurrentLocation,
-  calculateDistance,
-  getPreferredLocation,
-} from "@/lib/location";
-import { useFocusEffect } from "expo-router";
 import * as NavigationBar from "expo-navigation-bar";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Import our new Pro component
 import { AmbientBackground } from "@/components/ui/ambientBG";
@@ -55,9 +50,21 @@ export default function HomeScreen() {
     fetchMosques,
   } = useMosquesStore();
 
+  // Greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 6) return t("home.greeting_night", "طاب مساؤكم");
+    if (hour < 12) return t("home.greeting_morning", "صباح الخير");
+    if (hour < 17) return t("home.greeting_afternoon", "طاب يومكم");
+    return t("home.greeting_evening", "مساء الخير");
+  };
+
   const renderHeader = () => (
     <View style={[styles.headerContainer, { marginTop: insets.top }]}>
       <View>
+        <Text style={[styles.greeting, { color: theme.textSecondary }]}>
+          {getGreeting()}
+        </Text>
         <Text style={[styles.appName, { color: theme.primary }]}>
           {t("app_name")}
         </Text>
@@ -113,11 +120,6 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
           {t("home.featured")}
         </Text>
-        <TouchableOpacity>
-          <Text style={[styles.seeAll, { color: theme.primary }]}>
-            {t("common.view_all")}
-          </Text>
-        </TouchableOpacity>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
         {eventsLoading && events.length === 0 ? (
@@ -148,6 +150,13 @@ export default function HomeScreen() {
   );
 
   const [mosquesWithDistance, setMosquesWithDistance] = React.useState(mosques);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchEvents(), fetchSchools(), fetchMosques()]);
+    setRefreshing(false);
+  }, [fetchEvents, fetchSchools, fetchMosques]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -183,11 +192,6 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
           المدارس القرآنية
         </Text>
-        <TouchableOpacity>
-          <Text style={[styles.seeAll, { color: theme.primary }]}>
-            {t("common.view_all")}
-          </Text>
-        </TouchableOpacity>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
         {schoolsLoading && schools.length === 0 ? (
@@ -214,11 +218,6 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: theme.text }]}>
           {t("home.nearby")}
         </Text>
-        <TouchableOpacity>
-          <Text style={[styles.seeAll, { color: theme.primary }]}>
-            {t("common.view_all")}
-          </Text>
-        </TouchableOpacity>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
         {mosquesWithDistance.slice(0, 3).map((mosque) => (
@@ -232,9 +231,6 @@ export default function HomeScreen() {
     NavigationBar.setBackgroundColorAsync("transparent");
     NavigationBar.setPositionAsync("absolute");
   }, []);
-  console.log("events", events);
-  console.log("mosquess", mosques);
-
   return (
     <View style={styles.container}>
       <StatusBar
@@ -257,6 +253,14 @@ export default function HomeScreen() {
           paddingBottom: 100,
           paddingTop: Spacing.md,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
       >
         {renderHeader()}
         {renderCategories()}

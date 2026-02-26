@@ -32,6 +32,24 @@
     "distance": "{{km}} كم",
     "time_separator": "•"
   },
+  "explore": {
+    "filter_results": "تصفية النتائج",
+    "reset": "إعادة تعيين",
+    "reset_filters": "إعادة تعيين الفلاتر",
+    "clear_all": "مسح الكل",
+    "show_results": "عرض النتائج",
+    "show_results_count": "عرض النتائج ({{count}} فلتر)",
+    "no_results": "لا توجد مساجد مطابقة للبحث",
+    "no_results_hint": "جرّب تغيير كلمة البحث أو الفلاتر",
+    "city": "المدينة",
+    "distance_label": "المسافة",
+    "sort": "الترتيب",
+    "sort_nearest": "الأقرب",
+    "sort_name": "الاسم",
+    "distance_near": "قريب (< 2 كم)",
+    "distance_medium": "متوسط (< 10 كم)",
+    "distance_far": "بعيد (< 25 كم)"
+  },
   "settings": {
     "title": "الإعدادات",
     "appearance": "المظهر",
@@ -48,5 +66,21 @@
     "noResults": "لا توجد نتائج",
     "savedLocation": "الموقع المحفوظ",
     "clearLocation": "مسح الموقع المحفوظ"
+  },
+  "adhan": {
+    "title": "الأذان",
+    "fajr": "الفجر",
+    "dhuhr": "الظهر",
+    "asr": "العصر",
+    "maghrib": "المغرب",
+    "isha": "العشاء",
+    "calculationMethod": "طريقة الحساب",
+    "notificationBody": "حان وقت صلاة {{prayer}}",
+    "algerian": "الجزائرية",
+    "muslimWorldLeague": "رابطة العالم الإسلامي",
+    "egyptian": "الهيئة المصرية",
+    "ummAlQura": "أم القرى",
+    "northAmerica": "أمريكا الشمالية (ISNA)",
+    "karachi": "كراتشي"
   }
 }

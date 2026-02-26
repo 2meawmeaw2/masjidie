@@ -268,7 +268,7 @@ const StatCard = ({ icon, label, value, theme, isDark }: any) => (
     <View
       style={[
         styles.iconCircle,
-        { backgroundColor: isDark ? "#333" : "#f2f2f2" },
+        { backgroundColor: isDark ? theme.card : theme.background },
       ]}
     >
       <Ionicons name={icon} size={22} color={theme.primary} />
