@@ -1,16 +1,16 @@
-import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
-import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
-import { useTheme } from "@/context/ThemeContext";
-import { getSavedLocation, LocationData } from "@/lib/storage";
-import { PrayerName, useAdhanStore } from "@/lib/stores/adhanStore";
-import { useAuthStore } from "@/lib/stores/authStore";
-import Constants from "expo-constants";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useRouter } from "expo-router";
+import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { useAdhanStore, PrayerName } from "@/lib/stores/adhanStore";
+import { getSavedLocation, LocationData } from "@/lib/storage";
+import Constants from "expo-constants";
+import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
 
 const PRAYERS: PrayerName[] = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
 
@@ -35,9 +35,7 @@ export default function ProfileScreen() {
   }, []);
 
   const appVersion =
-    Constants.expoConfig?.version ??
-    Constants.manifest2?.extra?.expoClient?.version ??
-    "1.0.0";
+    Constants.expoConfig?.version ?? Constants.manifest2?.extra?.expoClient?.version ?? "1.0.0";
 
   return (
     <ScrollView
@@ -103,7 +101,9 @@ export default function ProfileScreen() {
           <AnimatedSettingRow
             icon={session ? "shield-checkmark" : "shield-outline"}
             title={
-              session ? t("settings.adminDashboard") : t("settings.adminLogin")
+              session
+                ? t("settings.adminDashboard")
+                : t("settings.adminLogin")
             }
             index={3}
             isLast={!!session}

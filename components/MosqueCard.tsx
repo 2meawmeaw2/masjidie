@@ -19,7 +19,7 @@ interface MosqueCardProps {
   onPress?: () => void; // 2. Made optional since card now handles nav
 }
 
-export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
+export const MosqueCard = React.memo(function MosqueCard({ mosque, onPress }: MosqueCardProps) {
   const router = useRouter(); // 3. Initialize router
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
@@ -87,7 +87,7 @@ export function MosqueCard({ mosque, onPress }: MosqueCardProps) {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

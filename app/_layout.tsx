@@ -105,6 +105,10 @@ function RootLayoutContent() {
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="settings"
+          options={{ animation: "ios_from_left", headerShown: false }}
+        />
       </Stack>
       <StatusBar style="auto" />
       <BatteryOptimizationModal />

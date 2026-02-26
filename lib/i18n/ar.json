@@ -48,7 +48,11 @@
     "sort_name": "الاسم",
     "distance_near": "قريب (< 2 كم)",
     "distance_medium": "متوسط (< 10 كم)",
-    "distance_far": "بعيد (< 25 كم)"
+    "distance_far": "بعيد (< 25 كم)",
+    "loading": "جاري تحميل المساجد...",
+    "loading_more": "جاري تحميل المزيد...",
+    "all_loaded": "تم تحميل جميع المساجد",
+    "all_loaded_count": "تم تحميل {{count}} مسجد"
   },
   "settings": {
     "title": "الإعدادات",
@@ -65,7 +69,20 @@
     "searching": "جاري البحث...",
     "noResults": "لا توجد نتائج",
     "savedLocation": "الموقع المحفوظ",
-    "clearLocation": "مسح الموقع المحفوظ"
+    "clearLocation": "مسح الموقع المحفوظ",
+    "locationSaved": "تم حفظ الموقع",
+    "appearanceTitle": "المظهر",
+    "locationTitle": "الموقع",
+    "appearanceDesc": "المظهر واللغة",
+    "adhanDesc": "{{count}}/5 صلوات مفعّلة",
+    "notSet": "غير محدد",
+    "lightMode": "الوضع الفاتح",
+    "prayersEnabled": "صلوات مفعّلة",
+    "version": "الإصدار {{version}}",
+    "admin": "الإدارة",
+    "adminDashboard": "لوحة الإدارة",
+    "adminLogin": "تسجيل دخول المسؤول",
+    "registerMosque": "سجّل مسجدك/مدرستك"
   },
   "adhan": {
     "title": "الأذان",

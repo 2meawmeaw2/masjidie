@@ -14,7 +14,8 @@
       "WebSearch",
       "Bash(cd:*)",
       "Bash(head:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(cat:*)"
     ]
   }
 }

@@ -48,7 +48,11 @@
     "sort_name": "Name",
     "distance_near": "Near (< 2 km)",
     "distance_medium": "Medium (< 10 km)",
-    "distance_far": "Far (< 25 km)"
+    "distance_far": "Far (< 25 km)",
+    "loading": "Loading mosques...",
+    "loading_more": "Loading more...",
+    "all_loaded": "All mosques loaded",
+    "all_loaded_count": "All {{count}} mosques loaded"
   },
   "settings": {
     "title": "Settings",
@@ -65,7 +69,20 @@
     "searching": "Searching...",
     "noResults": "No results found",
     "savedLocation": "Saved Location",
-    "clearLocation": "Clear Saved Location"
+    "clearLocation": "Clear Saved Location",
+    "locationSaved": "Location Saved",
+    "appearanceTitle": "Appearance",
+    "locationTitle": "Location",
+    "appearanceDesc": "Theme & Language",
+    "adhanDesc": "{{count}}/5 prayers enabled",
+    "notSet": "Not set",
+    "lightMode": "Light Mode",
+    "prayersEnabled": "prayers enabled",
+    "version": "Version {{version}}",
+    "admin": "Admin",
+    "adminDashboard": "Admin Dashboard",
+    "adminLogin": "Admin Login",
+    "registerMosque": "Register Your Mosque/School"
   },
   "adhan": {
     "title": "Adhan",

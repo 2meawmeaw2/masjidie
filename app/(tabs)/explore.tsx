@@ -1,3 +1,4 @@
+import { ExploreListFooter } from "@/components/ExploreListFooter";
 import { MosqueCard } from "@/components/MosqueCard";
 import {
   BorderRadius,
@@ -7,8 +8,9 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { calculateDistance, getPreferredLocation } from "@/lib/location";
-import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useMosquePagination } from "@/hooks/use-mosque-pagination";
+import { fetchMosqueCities } from "@/lib/api/mosquesApi";
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, {
   BottomSheetBackdrop,
@@ -16,9 +18,16 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { Portal } from "@gorhom/portal";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
@@ -51,7 +60,7 @@ const DISTANCE_OPTIONS: {
   key: DistanceRange;
   labelKey: string;
   icon: string;
-  max: number; // km — Infinity for "any"
+  max: number;
 }[] = [
   {
     key: "near",
@@ -85,8 +94,10 @@ const SORT_OPTIONS: { key: SortOption; labelKey: string; icon: string }[] = [
   { key: "name", labelKey: "explore.sort_name", icon: "text-outline" },
 ];
 
+// ── Item layout constants for FlatList ──────────────
+const ITEM_HEIGHT = 110 + 16; // card height + marginBottom
+
 // ── Animated Pressable Chip ──────────────────────────
-// Bounces on press with a spring scale animation
 function AnimatedChip({
   onPress,
   style,
@@ -131,44 +142,36 @@ export default function ExploreScreen() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
-  const {
-    mosques,
-    isLoading: mosquesLoading,
-    fetchMosques,
-  } = useMosquesStore();
-
-  const [mosquesWithDistance, setMosquesWithDistance] = useState(mosques);
-
-  React.useEffect(() => {
-    fetchMosques();
-  }, []);
-
-  React.useEffect(() => {
-    (async () => {
-      const location = await getPreferredLocation();
-      if (location && mosques.length > 0) {
-        const updatedMosques = mosques.map((mosque) => {
-          const dist = calculateDistance(
-            location.latitude,
-            location.longitude,
-            mosque.latitude,
-            mosque.longitude,
-          );
-          return { ...mosque, distance: dist };
-        });
-        setMosquesWithDistance(updatedMosques);
-      } else {
-        setMosquesWithDistance(mosques);
-      }
-    })();
-  }, [mosques]);
-
   // ── Filter state ────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [selectedDistance, setSelectedDistance] =
     useState<DistanceRange>("any");
   const [sortBy, setSortBy] = useState<SortOption>("distance");
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // ── Server-side pagination ──────────────────────
+  const {
+    mosques,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    totalCount,
+    loadMore,
+    refresh,
+  } = useMosquePagination({
+    searchQuery: debouncedSearch,
+    selectedCities,
+    selectedDistance,
+    sortBy,
+  });
+
+  // ── Cities list (fetched independently) ─────────
+  const [cities, setCities] = useState<string[]>([]);
+  useEffect(() => {
+    fetchMosqueCities().then(setCities);
+  }, []);
 
   // ── Pending state (bottom sheet) ────────────────
   const [pendingCities, setPendingCities] = useState<string[]>([]);
@@ -184,48 +187,6 @@ export default function ExploreScreen() {
   const filterBtnStyle = useAnimatedStyle(() => ({
     transform: [{ scale: filterBtnScale.value }],
   }));
-
-  // ── Derived data ────────────────────────────────
-  const cities = useMemo(() => {
-    const allCities = mosquesWithDistance.map((m) => m.city);
-    return Array.from(new Set(allCities));
-  }, [mosquesWithDistance]);
-
-  const filteredMosques = useMemo(() => {
-    let result = mosquesWithDistance.filter((mosque) => {
-      const matchesSearch =
-        searchQuery.length === 0 ||
-        mosque.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.city.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesCity =
-        selectedCities.length === 0 || selectedCities.includes(mosque.city);
-
-      const distMax =
-        DISTANCE_OPTIONS.find((d) => d.key === selectedDistance)?.max ??
-        Infinity;
-      const matchesDistance =
-        selectedDistance === "any" || mosque.distance <= distMax;
-
-      return matchesSearch && matchesCity && matchesDistance;
-    });
-
-    // Sort
-    if (sortBy === "distance") {
-      result = [...result].sort((a, b) => a.distance - b.distance);
-    } else {
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name, "ar"));
-    }
-
-    return result;
-  }, [
-    searchQuery,
-    selectedCities,
-    selectedDistance,
-    sortBy,
-    mosquesWithDistance,
-  ]);
 
   // Count only city + distance (sort doesn't count as a "filter")
   const activeFilterCount =
@@ -320,6 +281,39 @@ export default function ExploreScreen() {
     return chips;
   }, [selectedCities, selectedDistance]);
 
+  // ── FlatList helpers ────────────────────────────
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof mosques)[0] }) => (
+      <View style={{ marginBottom: Spacing.md }}>
+        <MosqueCard mosque={item} onPress={() => {}} />
+      </View>
+    ),
+    [],
+  );
+
+  const keyExtractor = useCallback((item: (typeof mosques)[0]) => item.id, []);
+
+  const listFooter = useCallback(
+    () => (
+      <ExploreListFooter
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        totalCount={totalCount}
+        dataLength={mosques.length}
+      />
+    ),
+    [isLoadingMore, hasMore, totalCount, mosques.length],
+  );
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
@@ -343,7 +337,7 @@ export default function ExploreScreen() {
           >
             <Ionicons name="location" size={13} color={theme.primary} />
             <Text style={[styles.resultCount, { color: theme.primary }]}>
-              {filteredMosques.length}
+              {totalCount}
             </Text>
           </View>
         </View>
@@ -440,7 +434,7 @@ export default function ExploreScreen() {
                   ]}
                 >
                   <Text style={[styles.clearAllText, { color: theme.error }]}>
-                    {t("explore.clear_all")}ss
+                    {t("explore.clear_all")}
                   </Text>
                 </AnimatedChip>
               }
@@ -480,72 +474,82 @@ export default function ExploreScreen() {
       </View>
 
       {/* Mosque List */}
-      <FlatList
-        data={filteredMosques}
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeInDown.delay(index * 80).springify()}
-            layout={LinearTransition.springify()}
-            style={{ marginBottom: Spacing.xs }}
-          >
-            <MosqueCard mosque={item} onPress={() => {}} />
-          </Animated.View>
-        )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Animated.View
-            entering={FadeIn.delay(200).duration(400)}
-            style={styles.emptyState}
-          >
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+            {t("explore.loading")}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={mosques}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== "web"}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          refreshing={false}
+          onRefresh={refresh}
+          ListFooterComponent={listFooter}
+          ListEmptyComponent={
             <Animated.View
-              entering={ZoomIn.delay(300).springify().damping(10)}
-              style={[
-                styles.emptyIconBg,
-                {
-                  backgroundColor: isDark
-                    ? theme.primary + "15"
-                    : theme.primary + "10",
-                },
-              ]}
+              entering={FadeIn.delay(200).duration(400)}
+              style={styles.emptyState}
             >
-              <Ionicons
-                name="search-outline"
-                size={40}
-                color={theme.primary + "70"}
-              />
-            </Animated.View>
-            <Animated.Text
-              entering={FadeInDown.delay(400).springify()}
-              style={[styles.emptyText, { color: theme.text }]}
-            >
-              {t("explore.no_results")}
-            </Animated.Text>
-            <Animated.Text
-              entering={FadeInDown.delay(500).springify()}
-              style={[styles.emptySubtext, { color: theme.textSecondary }]}
-            >
-              {t("explore.no_results_hint")}
-            </Animated.Text>
-            {activeFilterCount > 0 && (
-              <Animated.View entering={FadeInDown.delay(600).springify()}>
-                <AnimatedChip
-                  onPress={clearAllFilters}
-                  style={[
-                    styles.emptyResetBtn,
-                    { backgroundColor: theme.primary },
-                  ]}
-                >
-                  <Text style={styles.emptyResetText}>
-                    {t("explore.reset_filters")}
-                  </Text>
-                </AnimatedChip>
+              <Animated.View
+                entering={ZoomIn.delay(300).springify().damping(10)}
+                style={[
+                  styles.emptyIconBg,
+                  {
+                    backgroundColor: isDark
+                      ? theme.primary + "15"
+                      : theme.primary + "10",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="search-outline"
+                  size={40}
+                  color={theme.primary + "70"}
+                />
               </Animated.View>
-            )}
-          </Animated.View>
-        }
-      />
+              <Animated.Text
+                entering={FadeInDown.delay(400).springify()}
+                style={[styles.emptyText, { color: theme.text }]}
+              >
+                {t("explore.no_results")}
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(500).springify()}
+                style={[styles.emptySubtext, { color: theme.textSecondary }]}
+              >
+                {t("explore.no_results_hint")}
+              </Animated.Text>
+              {activeFilterCount > 0 && (
+                <Animated.View entering={FadeInDown.delay(600).springify()}>
+                  <AnimatedChip
+                    onPress={clearAllFilters}
+                    style={[
+                      styles.emptyResetBtn,
+                      { backgroundColor: theme.primary },
+                    ]}
+                  >
+                    <Text style={styles.emptyResetText}>
+                      {t("explore.reset_filters")}
+                    </Text>
+                  </AnimatedChip>
+                </Animated.View>
+              )}
+            </Animated.View>
+          }
+        />
+      )}
 
       {/* ── Bottom Sheet ──────────────────────────── */}
       <Portal>
@@ -620,7 +624,8 @@ export default function ExploreScreen() {
                   <Animated.View
                     layout={LinearTransition.duration(500)}
                     entering={FadeIn.duration(500)}
-                    key={`badge-${pendingCities.length}`}
+                    exiting={FadeOut.duration(500)}
+                    key={`badge-${pendingCities.length > 0 ? "dsa" : "das"}`}
                     style={[
                       styles.sectionBadge,
                       { backgroundColor: theme.primary + "15" },
@@ -962,6 +967,18 @@ const styles = StyleSheet.create({
   clearAllText: {
     fontSize: 13,
     fontFamily: Fonts.mdsans,
+  },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: Fonts.rsans,
   },
 
   // List
