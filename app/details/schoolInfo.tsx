@@ -15,6 +15,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
+import { useBookmarksStore } from "@/lib/stores/bookmarksStore";
+import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 
 export default function SchoolDetails() {
   const router = useRouter();
@@ -23,7 +26,9 @@ export default function SchoolDetails() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
+  const { t } = useTranslation();
   const { getSchoolById, fetchSchools, isLoading } = useIslamicSchoolsStore();
+  const { isSchoolSaved, toggleSchool } = useBookmarksStore();
 
   useEffect(() => {
     fetchSchools();
@@ -126,6 +131,40 @@ export default function SchoolDetails() {
                 </Text>
               </TouchableOpacity>
             )}
+
+            {/* Bookmark button */}
+            {(() => {
+              const saved = isSchoolSaved(school.id);
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    toggleSchool(school.id);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[
+                    styles.bookmarkButton,
+                    {
+                      backgroundColor: saved ? theme.primary : "transparent",
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={saved ? "bookmark" : "bookmark-outline"}
+                    size={18}
+                    color={saved ? "#fff" : theme.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.bookmarkText,
+                      { color: saved ? "#fff" : theme.primary },
+                    ]}
+                  >
+                    {saved ? t("bookmarks.saved") : t("bookmarks.save")}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
           </View>
 
           {/* 3. Stats Grid */}
@@ -348,6 +387,20 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 15,
+    fontFamily: Fonts.mdsans,
+  },
+  bookmarkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    marginTop: Spacing.md,
+  },
+  bookmarkText: {
+    fontSize: 14,
     fontFamily: Fonts.mdsans,
   },
   // Stats

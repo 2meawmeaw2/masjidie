@@ -1,6 +1,11 @@
-import { Colors } from "@/constants/theme";
+import { Colors, Fonts } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
+import {
+  extractCoordsFromUrl,
+  resolveGoogleMapsLink,
+} from "@/lib/stores/mosquesStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -31,15 +36,17 @@ export default function RegisterScreen() {
 
   const [type, setType] = useState<RegistrationType>("mosque");
   const slideAnim = React.useRef(new Animated.Value(0)).current;
-  const [toggleWidth, setToggleWidth] = useState(0); // <-- Add this to track container width
+  const [toggleWidth, setToggleWidth] = useState(0);
+
   React.useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: type === "mosque" ? 0 : -1,
-      useNativeDriver: true, // Hardware acceleration for smooth 60fps
+      useNativeDriver: true,
       bounciness: 2,
       speed: 12,
     }).start();
   }, [type]);
+
   // Account fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +61,20 @@ export default function RegisterScreen() {
   const [capacity, setCapacity] = useState("");
   const [description, setDescription] = useState("");
   const [mapsUrl, setMapsUrl] = useState("");
+  const [services, setServices] = useState<string[]>([]);
+  const [serviceInput, setServiceInput] = useState("");
+
+  const addService = () => {
+    const trimmed = serviceInput.trim();
+    if (trimmed && !services.includes(trimmed)) {
+      setServices((prev) => [...prev, trimmed]);
+      setServiceInput("");
+    }
+  };
+
+  const removeService = (service: string) => {
+    setServices((prev) => prev.filter((s) => s !== service));
+  };
 
   // School fields
   const [phone, setPhone] = useState("");
@@ -70,8 +91,8 @@ export default function RegisterScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission needed",
-        "Please allow access to your photo library to upload an image.",
+        "صلاحية مطلوبة",
+        "يرجى السماح بالوصول إلى مكتبة الصور لرفع صورة.",
       );
       return;
     }
@@ -98,8 +119,6 @@ export default function RegisterScreen() {
 
       const response = await fetch(imageUri);
       const blob = await response.blob();
-
-      // Convert blob to ArrayBuffer for Supabase upload
       const arrayBuffer = await new Response(blob).arrayBuffer();
 
       const { error: uploadError } = await supabase.storage
@@ -134,34 +153,59 @@ export default function RegisterScreen() {
     setValidationError(null);
 
     if (!email.trim()) {
-      setValidationError("Email is required");
+      setValidationError("البريد الإلكتروني مطلوب");
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setValidationError("Please enter a valid email");
+      setValidationError("يرجى إدخال بريد إلكتروني صالح");
       return false;
     }
     if (!password || password.length < 6) {
-      setValidationError("Password must be at least 6 characters");
+      setValidationError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
       return false;
     }
     if (password !== confirmPassword) {
-      setValidationError("Passwords do not match");
+      setValidationError("كلمتا المرور غير متطابقتين");
       return false;
     }
     if (!name.trim()) {
-      setValidationError("Name is required");
+      setValidationError("الاسم مطلوب");
       return false;
     }
     if (!address.trim()) {
-      setValidationError("Address is required");
+      setValidationError("العنوان مطلوب");
       return false;
     }
     if (!city.trim()) {
-      setValidationError("City is required");
+      setValidationError("المدينة مطلوبة");
       return false;
     }
     return true;
+  };
+
+  const resolveCoordinatesFromMapsUrl = async (
+    url: string,
+  ): Promise<{ latitude: number; longitude: number }> => {
+    if (!url.trim()) return { latitude: 0, longitude: 0 };
+
+    try {
+      let finalUrl = url.trim();
+
+      if (
+        finalUrl.includes("goo.gl") ||
+        finalUrl.includes("app.goo.gl") ||
+        finalUrl.includes("share.google")
+      ) {
+        finalUrl = await resolveGoogleMapsLink(finalUrl);
+      }
+
+      const coords = extractCoordsFromUrl(finalUrl);
+      if (coords) return coords;
+    } catch (err) {
+      console.warn("Failed to resolve coordinates from maps URL:", err);
+    }
+
+    return { latitude: 0, longitude: 0 };
   };
 
   const handleSubmit = async () => {
@@ -177,12 +221,13 @@ export default function RegisterScreen() {
     const success = await signUp(email.trim(), password, metadata);
     if (!success) return;
 
-    // Upload image if selected
     const imageUrl = await uploadImage(recordId);
+    const { submitRequest } = useRequestsStore.getState();
 
-    // Insert into the relevant table
     if (type === "mosque") {
-      const { error: insertError } = await supabase.from("mosques").insert({
+      const coords = await resolveCoordinatesFromMapsUrl(mapsUrl);
+
+      const payload = {
         id: recordId,
         name: name.trim(),
         address: address.trim(),
@@ -191,12 +236,19 @@ export default function RegisterScreen() {
         capacity: capacity.trim() || null,
         description: description.trim() || null,
         maps_url: mapsUrl.trim() || null,
+        services: services.length > 0 ? services : null,
         image_url: imageUrl,
-        latitude: 0,
-        longitude: 0,
-      });
-      if (insertError) {
-        Alert.alert("Error", insertError.message);
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      };
+      const ok = await submitRequest(
+        "register_mosque",
+        "mosques",
+        recordId,
+        payload,
+      );
+      if (!ok) {
+        Alert.alert("خطأ", "فشل إرسال طلب التسجيل.");
         return;
       }
     } else {
@@ -205,32 +257,47 @@ export default function RegisterScreen() {
         .map((p) => p.trim())
         .filter(Boolean);
 
-      const { error: insertError } = await supabase
-        .from("quran_schools")
-        .insert({
-          id: recordId,
-          name: name.trim(),
-          address: address.trim(),
-          city: city.trim(),
-          description: description.trim() || null,
-          phone: phone.trim() || null,
-          email: schoolEmail.trim() || null,
-          programs: programList.length > 0 ? programList : null,
-          age_range: ageRange.trim() || null,
-          gender: gender,
-          image_url: imageUrl,
-          latitude: 0,
-          longitude: 0,
-        });
-      if (insertError) {
-        Alert.alert("Error", insertError.message);
+      const payload = {
+        id: recordId,
+        name: name.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        description: description.trim() || null,
+        phone: phone.trim() || null,
+        email: schoolEmail.trim() || null,
+        programs: programList.length > 0 ? programList : null,
+        age_range: ageRange.trim() || null,
+        gender: gender,
+        image_url: imageUrl,
+        latitude: 0,
+        longitude: 0,
+      };
+      const ok = await submitRequest(
+        "register_school",
+        "quran_schools",
+        recordId,
+        payload,
+      );
+      if (!ok) {
+        Alert.alert("خطأ", "فشل إرسال طلب التسجيل.");
         return;
       }
     }
-    // Session listener in _layout will auto-navigate to /admin
+
+    Alert.alert(
+      "تم إرسال التسجيل",
+      "تم إرسال تسجيلك للمراجعة. سيتم إشعارك عند الموافقة عليه.",
+      [{ text: "حسناً" }],
+    );
   };
 
   const displayError = validationError || error;
+
+  const GENDER_LABELS: Record<"male" | "female" | "mixed", string> = {
+    male: "ذكور",
+    female: "إناث",
+    mixed: "مختلط",
+  };
 
   const renderInput = (
     icon: keyof typeof Ionicons.glyphMap,
@@ -272,6 +339,7 @@ export default function RegisterScreen() {
         multiline={options?.multiline}
         keyboardType={options?.keyboardType}
         autoCapitalize={options?.autoCapitalize ?? "sentences"}
+        textAlign="right"
       />
     </View>
   );
@@ -293,9 +361,9 @@ export default function RegisterScreen() {
           >
             <Ionicons name="business" size={32} color="#fff" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Register</Text>
+          <Text style={[styles.title, { color: colors.text }]}>تسجيل جديد</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Join the Masjidie platform
+            انضم إلى منصة مسجدي
           </Text>
         </View>
 
@@ -307,14 +375,13 @@ export default function RegisterScreen() {
           ]}
           onLayout={(e) => setToggleWidth(e.nativeEvent.layout.width)}
         >
-          {/* Animated Sliding Background */}
           {toggleWidth > 0 && (
             <Animated.View
               style={[
                 styles.slidingBackground,
                 {
                   backgroundColor: colors.primary,
-                  width: (toggleWidth - 6) / 2, // 6px = 3px padding * 2
+                  width: (toggleWidth - 6) / 2,
                   transform: [
                     {
                       translateX: slideAnim.interpolate({
@@ -331,9 +398,7 @@ export default function RegisterScreen() {
           <TouchableOpacity
             style={[
               styles.toggleOption,
-              {
-                opacity: type === "mosque" ? 1 : 0.5,
-              },
+              { opacity: type === "mosque" ? 1 : 0.5 },
             ]}
             onPress={() => setType("mosque")}
             activeOpacity={0.7}
@@ -349,16 +414,14 @@ export default function RegisterScreen() {
                 { color: type === "mosque" ? "#fff" : colors.text },
               ]}
             >
-              Mosque
+              مسجد
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.toggleOption,
-              {
-                opacity: type === "school" ? 1 : 0.5,
-              },
+              { opacity: type === "school" ? 1 : 0.5 },
             ]}
             onPress={() => setType("school")}
             activeOpacity={0.7}
@@ -374,7 +437,7 @@ export default function RegisterScreen() {
                 { color: type === "school" ? "#fff" : colors.text },
               ]}
             >
-              Islamic School
+              مدرسة قرآنية
             </Text>
           </TouchableOpacity>
         </View>
@@ -388,9 +451,9 @@ export default function RegisterScreen() {
         >
           {/* Account Section */}
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            ACCOUNT
+            الحساب
           </Text>
-          {renderInput("mail-outline", "Email", email, setEmail, {
+          {renderInput("mail-outline", "البريد الإلكتروني", email, setEmail, {
             keyboardType: "email-address",
             autoCapitalize: "none",
           })}
@@ -411,12 +474,13 @@ export default function RegisterScreen() {
             />
             <TextInput
               style={[styles.input, { color: colors.text, flex: 1 }]}
-              placeholder="Password (min 6 characters)"
+              placeholder="كلمة المرور (6 أحرف على الأقل)"
               placeholderTextColor={colors.textSecondary}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              textAlign="right"
             />
             <TouchableOpacity
               onPress={() => setShowPassword((v) => !v)}
@@ -432,7 +496,7 @@ export default function RegisterScreen() {
           </View>
           {renderInput(
             "lock-closed-outline",
-            "Confirm password",
+            "تأكيد كلمة المرور",
             confirmPassword,
             setConfirmPassword,
             { autoCapitalize: "none" },
@@ -445,7 +509,7 @@ export default function RegisterScreen() {
               { color: colors.textSecondary, marginTop: 12 },
             ]}
           >
-            {type === "mosque" ? "MOSQUE DETAILS" : "SCHOOL DETAILS"}
+            {type === "mosque" ? "معلومات المسجد" : "معلومات المدرسة"}
           </Text>
 
           {/* Image Picker */}
@@ -475,7 +539,7 @@ export default function RegisterScreen() {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Tap to add a photo
+                  اضغط لإضافة صورة
                 </Text>
               </View>
             )}
@@ -487,21 +551,21 @@ export default function RegisterScreen() {
                 ]}
               >
                 <Ionicons name="camera-outline" size={20} color="#fff" />
-                <Text style={styles.imageChangeText}>Change</Text>
+                <Text style={styles.imageChangeText}>تغيير</Text>
               </View>
             )}
           </TouchableOpacity>
 
-          {renderInput("text-outline", "Name *", name, setName, {
+          {renderInput("text-outline", "الاسم *", name, setName, {
             autoCapitalize: "words",
           })}
-          {renderInput("location-outline", "Address *", address, setAddress)}
-          {renderInput("business-outline", "City *", city, setCity, {
+          {renderInput("location-outline", "العنوان *", address, setAddress)}
+          {renderInput("business-outline", "المدينة *", city, setCity, {
             autoCapitalize: "words",
           })}
           {renderInput(
             "document-text-outline",
-            "Description",
+            "الوصف",
             description,
             setDescription,
             { multiline: true },
@@ -509,39 +573,113 @@ export default function RegisterScreen() {
 
           {type === "mosque" ? (
             <>
-              {renderInput("person-outline", "Imam name", imam, setImam, {
+              {renderInput("person-outline", "اسم الإمام", imam, setImam, {
                 autoCapitalize: "words",
               })}
-              {renderInput("people-outline", "Capacity", capacity, setCapacity)}
+              {renderInput("people-outline", "السعة", capacity, setCapacity)}
               {renderInput(
                 "map-outline",
-                "Google Maps URL",
+                "رابط خرائط Google",
                 mapsUrl,
                 setMapsUrl,
                 { autoCapitalize: "none" },
               )}
+
+              {/* Services Input */}
+              <Text
+                style={[styles.fieldLabel, { color: colors.textSecondary }]}
+              >
+                الخدمات
+              </Text>
+              <View
+                style={[
+                  styles.inputWrap,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="construct-outline"
+                  size={18}
+                  color={colors.textSecondary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, { color: colors.text, flex: 1 }]}
+                  placeholder="أضف خدمة (مثال: صلاة الجمعة)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={serviceInput}
+                  onChangeText={setServiceInput}
+                  onSubmitEditing={addService}
+                  returnKeyType="done"
+                  textAlign="right"
+                />
+                <TouchableOpacity
+                  onPress={addService}
+                  style={styles.addServiceBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name="add-circle"
+                    size={24}
+                    color={serviceInput.trim() ? colors.primary : colors.border}
+                  />
+                </TouchableOpacity>
+              </View>
+              {services.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {services.map((service) => (
+                    <View
+                      key={service}
+                      style={[
+                        styles.tag,
+                        {
+                          backgroundColor: colors.primary + "15",
+                          borderColor: colors.primary + "30",
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tagText, { color: colors.primary }]}>
+                        {service}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => removeService(service)}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons
+                          name="close-circle"
+                          size={16}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
             </>
           ) : (
             <>
-              {renderInput("call-outline", "Phone", phone, setPhone, {
+              {renderInput("call-outline", "الهاتف", phone, setPhone, {
                 keyboardType: "phone-pad",
               })}
               {renderInput(
                 "mail-outline",
-                "Contact email",
+                "البريد الإلكتروني للتواصل",
                 schoolEmail,
                 setSchoolEmail,
                 { keyboardType: "email-address", autoCapitalize: "none" },
               )}
               {renderInput(
                 "book-outline",
-                "Programs (comma-separated)",
+                "البرامج (مفصولة بفاصلة)",
                 programs,
                 setPrograms,
               )}
               {renderInput(
                 "calendar-outline",
-                "Age range (e.g. 6-18)",
+                "الفئة العمرية (مثال: 6-18)",
                 ageRange,
                 setAgeRange,
               )}
@@ -550,7 +688,7 @@ export default function RegisterScreen() {
               <Text
                 style={[styles.fieldLabel, { color: colors.textSecondary }]}
               >
-                Gender
+                الجنس
               </Text>
               <View style={styles.genderRow}>
                 {(["male", "female", "mixed"] as const).map((g) => (
@@ -578,7 +716,7 @@ export default function RegisterScreen() {
                         },
                       ]}
                     >
-                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                      {GENDER_LABELS[g]}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -621,7 +759,7 @@ export default function RegisterScreen() {
                   size={20}
                   color="#fff"
                 />
-                <Text style={styles.buttonText}>Register</Text>
+                <Text style={styles.buttonText}>تسجيل</Text>
               </>
             )}
           </TouchableOpacity>
@@ -634,10 +772,10 @@ export default function RegisterScreen() {
           activeOpacity={0.7}
         >
           <Text style={[styles.linkText, { color: colors.textSecondary }]}>
-            Already have an account?{" "}
+            لديك حساب بالفعل؟{" "}
           </Text>
           <Text style={[styles.linkText, { color: colors.primary }]}>
-            Sign In
+            تسجيل الدخول
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -648,7 +786,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 8,
     paddingTop: 60,
     paddingBottom: 40,
   },
@@ -668,15 +806,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: "IBMPlexSansArabic-Bold",
+    fontFamily: Fonts.bdsans,
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: "IBMPlexSansArabic-Regular",
+    fontFamily: Fonts.rsans,
     marginTop: 4,
   },
 
-  // Toggle
   // Toggle
   toggleContainer: {
     flexDirection: "row",
@@ -684,7 +821,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 3,
     marginBottom: 16,
-    position: "relative", // <-- Important for the absolute background child
+    position: "relative",
   },
   slidingBackground: {
     position: "absolute",
@@ -700,11 +837,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 10,
     gap: 6,
-    zIndex: 1, // <-- Ensures touches pass through to the buttons over the background
+    zIndex: 1,
   },
   toggleText: {
     fontSize: 14,
-    fontFamily: "IBMPlexSansArabic-Medium",
+    fontFamily: Fonts.mdsans,
   },
 
   // Form card
@@ -715,15 +852,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontFamily: "IBMPlexSansArabic-Medium",
-    letterSpacing: 1,
+    fontSize: 13,
+    fontFamily: Fonts.sbsans,
+    letterSpacing: 0.5,
     marginBottom: -4,
+    writingDirection: "rtl",
   },
   fieldLabel: {
     fontSize: 13,
-    fontFamily: "IBMPlexSansArabic-Medium",
+    fontFamily: Fonts.mdsans,
     marginBottom: -4,
+    writingDirection: "rtl",
   },
   inputWrap: {
     flexDirection: "row",
@@ -733,13 +872,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   inputIcon: {
-    marginLeft: 12,
+    marginStart: 12,
   },
   input: {
     flex: 1,
     paddingHorizontal: 10,
     paddingVertical: 12,
     fontSize: 15,
+    fontFamily: Fonts.rsans,
+    writingDirection: "rtl",
   },
   eyeBtn: {
     paddingHorizontal: 12,
@@ -767,7 +908,7 @@ const styles = StyleSheet.create({
   },
   imagePlaceholderText: {
     fontSize: 13,
-    fontFamily: "IBMPlexSansArabic-Regular",
+    fontFamily: Fonts.rsans,
   },
   imageChangeOverlay: {
     position: "absolute",
@@ -783,7 +924,7 @@ const styles = StyleSheet.create({
   imageChangeText: {
     color: "#fff",
     fontSize: 13,
-    fontFamily: "IBMPlexSansArabic-Medium",
+    fontFamily: Fonts.mdsans,
   },
 
   // Gender
@@ -800,7 +941,31 @@ const styles = StyleSheet.create({
   },
   genderText: {
     fontSize: 13,
-    fontFamily: "IBMPlexSansArabic-Medium",
+    fontFamily: Fonts.mdsans,
+  },
+
+  // Services tags
+  addServiceBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: Fonts.mdsans,
   },
 
   // Error
@@ -813,8 +978,9 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    fontFamily: "IBMPlexSansArabic-Medium",
+    fontFamily: Fonts.mdsans,
     flex: 1,
+    writingDirection: "rtl",
   },
 
   // Button
@@ -829,7 +995,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontFamily: "IBMPlexSansArabic-Bold",
+    fontFamily: Fonts.bdsans,
     fontSize: 16,
   },
 
@@ -841,6 +1007,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    fontFamily: "IBMPlexSansArabic-Regular",
+    fontFamily: Fonts.rsans,
   },
 });

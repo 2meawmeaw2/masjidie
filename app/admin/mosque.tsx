@@ -1,9 +1,12 @@
+import ScreenHeader from "@/components/settings/Header";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,8 +22,16 @@ import {
 export default function AdminMosqueScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { mosqueId } = useAuthStore();
+  const { mosqueId, isSuperAdmin } = useAuthStore();
   const { invalidateCache, fetchMosques } = useMosquesStore();
+  const { submitRequest, mosqueApproved } = useRequestsStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isSuperAdmin && !mosqueApproved) {
+      router.replace("/admin");
+    }
+  }, [isSuperAdmin, mosqueApproved]);
 
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [form, setForm] = useState({
@@ -57,7 +68,9 @@ export default function AdminMosqueScreen() {
           description: data.description ?? "",
           imam: data.imam ?? "",
           capacity: data.capacity ?? "",
-          services: data.services ?? "",
+          services: Array.isArray(data.services)
+            ? data.services.join(", ")
+            : "",
           image_url: data.image_url ?? "",
           maps_url: data.maps_url ?? "",
         });
@@ -69,17 +82,50 @@ export default function AdminMosqueScreen() {
   const handleSave = async () => {
     if (!mosqueId) return;
     setIsSaving(true);
-    const { error } = await supabase
-      .from("mosques")
-      .update(form)
-      .eq("id", mosqueId);
 
-    if (error) {
-      Alert.alert("Error", error.message);
+    if (isSuperAdmin) {
+      const payload = {
+        ...form,
+        services: form.services
+          ? form.services
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      };
+      const { error } = await supabase
+        .from("mosques")
+        .update(payload)
+        .eq("id", mosqueId);
+
+      if (error) {
+        Alert.alert("Error", error.message);
+      } else {
+        invalidateCache();
+        await fetchMosques(true);
+        Alert.alert("تم الحفظ", "تم تحديث معلومات المسجد بنجاح.");
+      }
     } else {
-      invalidateCache();
-      await fetchMosques(true);
-      Alert.alert("Saved", "Mosque info updated successfully.");
+      const payload = {
+        ...form,
+        services: form.services
+          ? form.services
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      };
+      const ok = await submitRequest(
+        "update_mosque",
+        "mosques",
+        mosqueId,
+        payload,
+      );
+      if (ok) {
+        Alert.alert("تم الإرسال", "تم إرسال التعديلات للمراجعة.");
+      } else {
+        Alert.alert("خطأ", "فشل في إرسال طلب التحديث.");
+      }
     }
     setIsSaving(false);
   };
@@ -101,7 +147,7 @@ export default function AdminMosqueScreen() {
           color={colors.textSecondary}
         />
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-          No mosque assigned to your account.
+          لا يوجد مسجد مرتبط بحسابك.
         </Text>
       </View>
     );
@@ -156,37 +202,39 @@ export default function AdminMosqueScreen() {
       contentContainerStyle={styles.content}
     >
       {/* Identity */}
-      {sectionHeader("Identity")}
+      <ScreenHeader title="معلومات أساسية" />
       {sectionCard(
         <>
-          {field("Name", "name")}
-          {field("Description", "description", { multiline: true })}
-          {field("Imam", "imam")}
+          {field("الاسم", "name")}
+          {field("الوصف", "description", { multiline: true })}
+          {field("الإمام", "imam")}
         </>,
       )}
       {/* Location */}
-      {sectionHeader("Location")}
+      {sectionHeader("الموقع")}
       {sectionCard(
         <>
-          {field("Address", "address")}
-          {field("City", "city")}
-          {field("Maps URL", "maps_url", {
+          {field("العنوان", "address")}
+          {field("المدينة", "city")}
+          {field("رابط خرائط جوجل", "maps_url", {
             placeholder: "https://maps.app.goo.gl/...",
           })}
         </>,
       )}
       {/* Details */}
-      {sectionHeader("Details")}
+      {sectionHeader("تفاصيل")}
       {sectionCard(
         <>
-          {field("Capacity", "capacity")}
-          {field("Services", "services", { multiline: true })}
+          {field("السعة", "capacity")}
+          {field("الخدمات", "services", { multiline: true })}
         </>,
       )}
       {/* Media */}
-      {sectionHeader("Media")}
+      {sectionHeader("الوسائط")}
       {sectionCard(
-        <>{field("Image URL", "image_url", { placeholder: "https://..." })}</>,
+        <>
+          {field("رابط الصورة", "image_url", { placeholder: "https://..." })}
+        </>,
       )}
       <TouchableOpacity
         style={[
@@ -202,7 +250,7 @@ export default function AdminMosqueScreen() {
         ) : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={styles.saveButtonText}>حفظ التغييرات</Text>
           </>
         )}
       </TouchableOpacity>

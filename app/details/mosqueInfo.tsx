@@ -1,21 +1,24 @@
+import { ActivityCard } from "@/components/ActivityCard";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { handleOpenMaps } from "@/lib/location";
+import { useBookmarksStore } from "@/lib/stores/bookmarksStore";
+import { useEventsStore } from "@/lib/stores/eventsStore";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
   StatusBar,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 import Animated from "react-native-reanimated";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useMosquesStore } from "@/lib/stores/mosquesStore";
-import { useEventsStore } from "@/lib/stores/eventsStore";
-import { ActivityCard } from "@/components/ActivityCard";
-import { handleOpenMaps } from "@/lib/location";
 
 export default function MosqueDetails() {
   const router = useRouter();
@@ -24,9 +27,13 @@ export default function MosqueDetails() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
+  const { t } = useTranslation();
+
   // Get mosques and events from stores
   const { mosques, fetchMosques } = useMosquesStore();
   const { events, fetchEvents } = useEventsStore();
+  const { isMosqueSaved, toggleMosque } = useBookmarksStore();
+  const saved = isMosqueSaved(id as string);
 
   React.useEffect(() => {
     if (mosques.length === 0) fetchMosques();
@@ -47,6 +54,7 @@ export default function MosqueDetails() {
     (activity) => String(activity.mosqueId) === String(id),
   );
   const eventsSlice = filteredEvents.slice(0, 3);
+  console.log(mosque.services);
   return (
     <>
       <Stack.Screen
@@ -69,8 +77,6 @@ export default function MosqueDetails() {
           <Animated.Image
             source={{ uri: mosque.imageUrl }}
             style={styles.heroImage}
-            // @ts-ignore
-            sharedTransitionTag={`mosque-${id}`}
           />
           <View style={styles.overlay} />
         </View>
@@ -112,6 +118,35 @@ export default function MosqueDetails() {
                 {mosque.city}، {mosque.address} (اضغط للخريطة)
               </Text>
             </TouchableOpacity>
+
+            {/* Bookmark button */}
+            <TouchableOpacity
+              onPress={() => {
+                toggleMosque(mosque.id);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={[
+                styles.bookmarkButton,
+                {
+                  backgroundColor: saved ? theme.primary : "transparent",
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Ionicons
+                name={saved ? "bookmark" : "bookmark-outline"}
+                size={18}
+                color={saved ? "#fff" : theme.primary}
+              />
+              <Text
+                style={[
+                  styles.bookmarkText,
+                  { color: saved ? "#fff" : theme.primary },
+                ]}
+              >
+                {saved ? t("bookmarks.saved") : t("bookmarks.save")}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* 3. Capacity & Imam (Stats Grid) */}
@@ -138,14 +173,7 @@ export default function MosqueDetails() {
           {/* 4. Maraf9 (Facilities) */}
           <Section title="المرافق " theme={theme}>
             <View style={styles.facilitiesContainer}>
-              {[
-                "مصلى نساء",
-                "وضوء",
-                "مكيفات",
-                "مكتبة",
-                "مدخل كراسي",
-                "موقف سيارات",
-              ].map((item, index) => (
+              {mosque.services?.map((item, index) => (
                 <View
                   key={index}
                   style={[
@@ -338,6 +366,20 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 15,
+    fontFamily: Fonts.mdsans,
+  },
+  bookmarkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    marginTop: Spacing.md,
+  },
+  bookmarkText: {
+    fontSize: 14,
     fontFamily: Fonts.mdsans,
   },
   // Stats Grid

@@ -1,10 +1,7 @@
-import { create } from "zustand";
 import { Mosque } from "@/constants/mockData";
 import { supabase } from "@/lib/supabase";
-import {
-  SupabaseMosque,
-  mapSupabaseMosqueToMosque,
-} from "@/lib/types/mosque";
+import { SupabaseMosque, mapSupabaseMosqueToMosque } from "@/lib/types/mosque";
+import { create } from "zustand";
 
 // ──────────────────────────────────────────────
 // Cache configuration
@@ -19,7 +16,6 @@ async function fetchMosquesFromAPI(): Promise<Mosque[]> {
     .from("mosques")
     .select("*")
     .order("name");
-
   if (error) {
     throw new Error(error.message);
   }
@@ -31,11 +27,12 @@ async function fetchMosquesFromAPI(): Promise<Mosque[]> {
 // Helper Functions for Coordinate Resolution
 // ──────────────────────────────────────────────
 
-function extractCoordsFromUrl(
+export function extractCoordsFromUrl(
   url: string,
 ): { latitude: number; longitude: number } | null {
   try {
-    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    // Pattern 1: @lat,lng (standard Maps URLs)
+    const regex = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
     const match = url.match(regex);
     if (match && match.length >= 3) {
       return {
@@ -44,12 +41,23 @@ function extractCoordsFromUrl(
       };
     }
 
-    const queryRegex = /[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    // Pattern 2: ?q=lat,lng or ?ll=lat,lng
+    const queryRegex = /[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
     const queryMatch = url.match(queryRegex);
     if (queryMatch && queryMatch.length >= 3) {
       return {
         latitude: parseFloat(queryMatch[1]),
         longitude: parseFloat(queryMatch[2]),
+      };
+    }
+
+    // Pattern 3: !3dlat!4dlng (Google Maps place/data URLs)
+    const dataRegex = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
+    const dataMatch = url.match(dataRegex);
+    if (dataMatch && dataMatch.length >= 3) {
+      return {
+        latitude: parseFloat(dataMatch[1]),
+        longitude: parseFloat(dataMatch[2]),
       };
     }
 
@@ -59,10 +67,33 @@ function extractCoordsFromUrl(
   }
 }
 
-async function resolveGoogleMapsLink(shortUrl: string): Promise<string> {
+export async function resolveGoogleMapsLink(shortUrl: string): Promise<string> {
   try {
-    const response = await fetch(shortUrl, { method: "HEAD" });
-    return response.url;
+    // Use GET with redirect: "follow" (default) to resolve the full chain.
+    // Some servers don't respond to HEAD correctly for short URLs.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(shortUrl, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    // response.url is the final URL after all redirects
+    if (response.url && response.url !== shortUrl) {
+      return response.url;
+    }
+
+    // Fallback: check for a meta-refresh or Location header in the body
+    const text = await response.text();
+    const metaMatch = text.match(/content=["']\d+;\s*url=([^"']+)["']/i);
+    if (metaMatch && metaMatch[1]) {
+      return metaMatch[1];
+    }
+
+    return response.url || shortUrl;
   } catch (error) {
     console.warn("Error resolving short URL:", error);
     return shortUrl;
@@ -123,28 +154,27 @@ export const useMosquesStore = create<MosquesState>((set, get) => ({
   resolveMissingCoordinates: async () => {
     const { mosques } = get();
 
-    const mosquesToResolve = mosques.filter((m) => {
-      const isShortLink =
-        m.mapsUrl.includes("goo.gl") || m.mapsUrl.includes("maps.app.goo.gl");
-      const hasMissingCoords = m.latitude === 0 && m.longitude === 0;
+    // Try to resolve coordinates from mapsUrl for ALL mosques that have one.
+    // Priority: mapsUrl coordinates first, then fall back to DB lat/lng.
+    const mosquesWithUrl = mosques.filter((m) => m.mapsUrl);
 
-      return m.mapsUrl && (isShortLink || hasMissingCoords);
-    });
-
-    if (mosquesToResolve.length === 0) return;
+    if (mosquesWithUrl.length === 0) return;
 
     const updates = await Promise.all(
-      mosquesToResolve.map(async (mosque) => {
+      mosquesWithUrl.map(async (mosque) => {
         try {
           let finalUrl = mosque.mapsUrl;
 
+          // Resolve short links first
           if (
             mosque.mapsUrl.includes("goo.gl") ||
-            mosque.mapsUrl.includes("app.goo.gl")
+            mosque.mapsUrl.includes("app.goo.gl") ||
+            mosque.mapsUrl.includes("share.google")
           ) {
             finalUrl = await resolveGoogleMapsLink(mosque.mapsUrl);
           }
 
+          // Try extracting coords from the URL
           const coords = extractCoordsFromUrl(finalUrl);
           if (coords) {
             return { id: mosque.id, ...coords };
@@ -155,6 +185,7 @@ export const useMosquesStore = create<MosquesState>((set, get) => ({
             err,
           );
         }
+        // URL extraction failed — keep existing lat/lng (no update needed)
         return null;
       }),
     );

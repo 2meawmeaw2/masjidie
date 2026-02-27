@@ -7,10 +7,22 @@ import { useAuthStore } from "@/lib/stores/authStore";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+// Import Share and Linking
+import * as StoreReview from "expo-store-review";
+import {
+  Linking,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Animated, { Easing, FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// REPLACE THIS with your actual Play Store package name
+const GOOGLE_PLAY_ID = "com.masjidie2.app";
+const PLAY_STORE_URL = `https://play.google.com/store/apps/details?id=${GOOGLE_PLAY_ID}`;
 
 const PRAYERS: PrayerName[] = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
 
@@ -19,7 +31,6 @@ export default function ProfileScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const { session } = useAuthStore();
   const { preferences: adhanPrefs } = useAdhanStore();
   const [savedCity, setSavedCity] = useState<string | null>(null);
@@ -34,6 +45,26 @@ export default function ProfileScreen() {
     });
   }, []);
 
+  // --- Handlers ---
+
+  const onShare = async () => {
+    try {
+      await Share.share({
+        message: `حمل تطبيق الأذان والمواقيت الرائع من هنا: ${PLAY_STORE_URL}`,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const onRate = async () => {
+    if (await StoreReview.isAvailableAsync()) {
+      await StoreReview.requestReview();
+    } else {
+      Linking.openURL(PLAY_STORE_URL);
+    }
+  };
+
   const appVersion =
     Constants.expoConfig?.version ??
     Constants.manifest2?.extra?.expoClient?.version ??
@@ -44,44 +75,47 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + Spacing.md },
+        { paddingTop: insets.top + Spacing.lg },
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <Animated.Text
-        entering={FadeInDown.springify().mass(0.8).damping(15).stiffness(150)}
-        style={[styles.header, { color: colors.text }]}
+      {/* ─── Header ─── */}
+      <Animated.View
+        entering={FadeInDown.duration(300).easing(Easing.inOut(Easing.ease))}
+        style={styles.headerContainer}
       >
-        {t("settings.title")}
-      </Animated.Text>
+        <Text style={[styles.header, { color: colors.tint }]}>الإعدادات</Text>
+      </Animated.View>
 
-      {/* Settings Hub */}
+      {/* ─── عام (General) ─── */}
       <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          عام
+        </Text>
         <View
           style={[
-            styles.sectionCard,
+            styles.card,
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
           <AnimatedSettingRow
             icon="color-palette"
-            title={t("settings.appearanceTitle")}
-            description={t("settings.appearanceDesc")}
+            title="المظهر"
+            description="المظهر واللغة"
             index={0}
             onPress={() => router.push("/settings/appearance")}
           />
           <AnimatedSettingRow
             icon="notifications"
-            title={t("adhan.title")}
-            description={t("settings.adhanDesc", { count: enabledCount })}
+            title="الأذان"
+            description={`${enabledCount}/5 صلوات مفعّلة`}
             index={1}
             onPress={() => router.push("/settings/adhan")}
           />
           <AnimatedSettingRow
             icon="location"
-            title={t("settings.locationTitle")}
-            description={savedCity ?? t("settings.notSet")}
+            title="الموقع"
+            description={savedCity ?? "غير محدد"}
             index={2}
             isLast
             onPress={() => router.push("/settings/location")}
@@ -89,23 +123,50 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Admin Section */}
+      {/* ─── الدعم (Support) - NEW SECTION ─── */}
       <View style={styles.section}>
-        <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
-          {t("settings.admin").toUpperCase()}
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          التواصل
         </Text>
         <View
           style={[
-            styles.sectionCard,
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <AnimatedSettingRow
+            icon="share-social-outline"
+            title="شارك التطبيق"
+            description="انشر الخير لأصدقائك"
+            index={3}
+            onPress={onShare}
+          />
+          <AnimatedSettingRow
+            icon="star-outline"
+            title="قيمنا على المتجر"
+            description="دعمك يساعدنا على الاستمرار"
+            index={4}
+            isLast
+            onPress={onRate}
+          />
+        </View>
+      </View>
+
+      {/* ─── الإدارة (Admin) ─── */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          الإدارة
+        </Text>
+        <View
+          style={[
+            styles.card,
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
           <AnimatedSettingRow
             icon={session ? "shield-checkmark" : "shield-outline"}
-            title={
-              session ? t("settings.adminDashboard") : t("settings.adminLogin")
-            }
-            index={3}
+            title={session ? "لوحة الإدارة" : "تسجيل دخول المسؤول"}
+            index={5}
             isLast={!!session}
             onPress={() =>
               session ? router.push("/admin") : router.push("/auth/login")
@@ -114,8 +175,8 @@ export default function ProfileScreen() {
           {!session && (
             <AnimatedSettingRow
               icon="add-circle-outline"
-              title={t("settings.registerMosque")}
-              index={4}
+              title="سجّل مسجدك/مدرستك"
+              index={6}
               isLast
               onPress={() => router.push("/auth/register")}
             />
@@ -123,40 +184,53 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Footer */}
+      {/* ─── Footer ─── */}
       <Animated.Text
-        entering={FadeIn.delay(400).duration(500)}
+        entering={FadeIn.delay(350).duration(400)}
         style={[styles.versionText, { color: colors.textSecondary }]}
       >
-        {t("settings.version", { version: appVersion })}
+        {`الإصدار ${appVersion}`}
       </Animated.Text>
     </ScrollView>
   );
 }
 
+// ... styles remain the same
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: 120,
   },
-  header: {
-    fontSize: 28,
-    fontFamily: Fonts.bdsans,
-    marginBottom: Spacing.lg,
+  headerContainer: {
+    marginBottom: Spacing.xl,
     marginTop: Spacing.sm,
   },
+  header: {
+    fontSize: 30,
+    fontFamily: Fonts.bdsans,
+    writingDirection: "rtl",
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.rsans,
+    marginTop: Spacing.xs,
+    writingDirection: "rtl",
+  },
   section: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
-  sectionHeader: {
-    fontSize: 12,
-    fontFamily: Fonts.mdsans,
+  sectionLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.sbsans,
     marginBottom: Spacing.sm,
-    letterSpacing: 1,
     paddingHorizontal: Spacing.xs,
+    letterSpacing: 0.5,
+    writingDirection: "rtl",
   },
-  sectionCard: {
+  card: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
@@ -166,6 +240,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.rsans,
     textAlign: "center",
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
 });

@@ -94,12 +94,7 @@ export const AmbientBackground = memo(({ style }: Props) => {
 
   useEffect(() => {
     time.value = 0;
-    console.log("meaw");
-    time.value = withRepeat(
-      withTiming(100, { duration: 6000 }), // slow, large range
-      -1,
-      false,
-    );
+    time.value = withRepeat(withTiming(100, { duration: 60000 }), -1, true);
   }, []);
 
   const uniforms = useDerivedValue(() => {

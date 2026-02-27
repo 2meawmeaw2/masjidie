@@ -1,8 +1,8 @@
-import { Stack, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { useAuthStore } from "@/lib/stores/authStore";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { Stack, useRouter } from "expo-router";
+import { useEffect } from "react";
 
 export default function AdminLayout() {
   const { session } = useAuthStore();
@@ -29,15 +29,66 @@ export default function AdminLayout() {
           color: colors.text,
         },
         headerShadowVisible: false,
-        headerBackTitleVisible: false,
+        animation: "ios_from_right",
+
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Admin Dashboard" }} />
-      <Stack.Screen name="mosque" options={{ title: "Mosque Info" }} />
-      <Stack.Screen name="events" options={{ title: "Events" }} />
-      <Stack.Screen name="editEvent" options={{ title: "Edit Event" }} />
-      <Stack.Screen name="editSchool" options={{ title: "School" }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "لوحة تحكم المشرف",
+        }}
+      />
+      <Stack.Screen
+        name="mosque"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "معلومات المسجد",
+        }}
+      />
+      <Stack.Screen
+        name="events"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "الفعاليات",
+        }}
+      />
+      <Stack.Screen
+        name="editEvent"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "تعديل الفعالية",
+        }}
+      />
+      <Stack.Screen
+        name="editSchool"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "المدرسة القرآنية",
+        }}
+      />
+      <Stack.Screen
+        name="requests"
+        options={{
+          title: "الطلبات",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="reviewRequest"
+        options={{
+          animation: "ios_from_right",
+          headerShown: false,
+          title: "مراجعة الطلب",
+        }}
+      />
     </Stack>
   );
 }

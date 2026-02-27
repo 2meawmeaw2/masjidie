@@ -1,20 +1,21 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import LocationIcon from "@/assets/icons/location.svg";
+import { Badge } from "@/components/ui/Badge";
+import { CATEGORIES } from "@/constants/categories";
+import { Activity } from "@/constants/mockData";
 import {
-  Colors,
-  Spacing,
   BorderRadius,
+  Colors,
   Fonts,
   Shadows,
+  Spacing,
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Activity } from "@/constants/mockData";
-import { CATEGORIES } from "@/constants/categories";
-import { Badge } from "@/components/ui/Badge";
-import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import LocationIcon from "@/assets/icons/location.svg";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
 interface ActivityCardProps {
   index: number;
   activity: Activity;
@@ -22,9 +23,9 @@ interface ActivityCardProps {
   imageUrl?: string;
   onPress: () => void;
 }
-const imageHeight = 180;
-const imageWidth = 120;
-const r = 10;
+
+const CARD_IMAGE_HEIGHT = 160;
+
 export function ActivityCard({
   index,
   activity,
@@ -37,6 +38,7 @@ export function ActivityCard({
   const { t } = useTranslation();
   const category = CATEGORIES[activity.categoryId];
   const isDark = colorScheme === "dark";
+
   const getDayName = (dayIndex?: number) => {
     if (dayIndex === undefined) return "";
     const days = [
@@ -55,90 +57,128 @@ export function ActivityCard({
     activity.type === "recurring"
       ? `${getDayName(activity.dayOfWeek)} • ${activity.startTime}`
       : `${activity.date} • ${activity.startTime}`;
+
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
+      key={index}
+      activeOpacity={0.85}
       onPress={onPress}
       style={[
         styles.card,
-        { backgroundColor: theme.card, borderColor: theme.border },
+        {
+          backgroundColor: theme.card,
+          borderColor: isDark ? theme.border : "transparent",
+        },
         isDark ? {} : Shadows.light,
       ]}
     >
-      {/* Image Section with react-native Image + gradient fade */}
+      {/* ─── Hero Image with Overlay ─── */}
       {imageUrl && (
-        <View
-          style={[
-            styles.imageContainer,
-            // { transform: [{ scaleX: index === 1 ? -1 : 1 }] },
-          ]}
-        >
+        <View style={styles.imageWrapper}>
           <Image
             source={{ uri: imageUrl }}
-            style={StyleSheet.absoluteFill}
+            style={styles.image}
             resizeMode="cover"
           />
+          {/* Bottom gradient for text readability */}
           <LinearGradient
-            colors={[Colors["dark"].primary + "20", theme.card]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 2, y: 0 }}
-            style={StyleSheet.absoluteFill}
+            colors={["transparent", "rgba(0,0,0,0.55)"]}
+            style={styles.imageGradient}
           />
-        </View>
-      )}
-
-      {/* Content Section */}
-      <View
-        style={[
-          styles.contentContainer,
-          !imageUrl && { marginLeft: 0, paddingLeft: Spacing.md },
-        ]}
-      >
-        <View style={styles.header}>
-          <Badge
-            label={t(category.label)}
-            color={category.color}
-            variant="subtle"
-          />
+          {/* Category badge floating on the image */}
+          <View style={styles.floatingBadge}>
+            <Badge
+              label={t(category.label)}
+              color={category.color}
+              variant="solid"
+            />
+          </View>
+          {/* One-off indicator on image */}
           {activity.type === "one_off" && (
             <View
               style={[
-                styles.oneOffBadge,
+                styles.typeIndicator,
                 {
-                  backgroundColor: isDark
-                    ? theme.primary + "20"
-                    : theme.primary + "12",
-                  borderColor: theme.primary + "30",
+                  backgroundColor: "rgba(0,0,0,0.45)",
                 },
               ]}
             >
-              <Ionicons
-                name="calendar-outline"
-                size={12}
-                color={theme.primary}
-              />
-              <Text style={[styles.oneOffText, { color: theme.primary }]}>
-                مرة واحدة
-              </Text>
+              <Ionicons name="calendar" size={11} color="#fff" />
+              <Text style={styles.typeText}>مرة واحدة</Text>
             </View>
           )}
+          {/* Time overlay on the image bottom */}
+          <View style={styles.imageTimeOverlay}>
+            <Ionicons name="time-outline" size={14} color="#fff" />
+            <Text style={styles.imageTimeText}>{timeString}</Text>
+          </View>
         </View>
+      )}
 
+      {/* ─── Content Section ─── */}
+      <View style={styles.content}>
+        {/* Category badge when no image */}
+        {!imageUrl && (
+          <View style={styles.inlineBadgeRow}>
+            <Badge
+              label={t(category.label)}
+              color={category.color}
+              variant="subtle"
+            />
+            {activity.type === "one_off" && (
+              <View
+                style={[
+                  styles.inlineType,
+                  {
+                    backgroundColor: isDark
+                      ? theme.primary + "20"
+                      : theme.primary + "12",
+                    borderColor: theme.primary + "30",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={11}
+                  color={theme.primary}
+                />
+                <Text style={[styles.inlineTypeText, { color: theme.primary }]}>
+                  مرة واحدة
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Title */}
         <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
           {activity.title}
         </Text>
 
-        <View style={styles.row}>
-          <LocationIcon width={22} height={22} />
-          <Text style={[styles.mosque, { color: theme.icon }]}>
-            {mosqueName}
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={[styles.time, { color: theme.primary }]}>
-            {timeString}
-          </Text>
+        {/* Bottom Row: mosque + time (when no image) */}
+        <View style={styles.bottomRow}>
+          <View style={styles.locationRow}>
+            <Text
+              style={[styles.mosque, { color: theme.icon }]}
+              numberOfLines={1}
+            >
+              {mosqueName}
+            </Text>
+            <LocationIcon width={18} height={18} />
+          </View>
+          {/* Instructor (if available) */}
+          {activity.instructor && (
+            <View style={styles.metaRow}>
+              <Ionicons
+                name="person-circle-outline"
+                size={16}
+                color={theme.primary}
+              />
+              <Text style={[styles.metaText, { color: theme.textSecondary }]}>
+                {activity.instructor}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -150,77 +190,128 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     marginBottom: Spacing.md,
-    flexDirection: "row", // Key: keeps image left, content right
     overflow: "hidden",
-    minHeight: 120,
-    direction: "ltr", // FORCE LTR to ensure Image is Left, Text is Right
   },
-  imageContainer: {
-    width: 120,
+
+  /* ─── Image ─── */
+  imageWrapper: {
+    height: CARD_IMAGE_HEIGHT,
+    width: "100%",
+    position: "relative",
+  },
+  image: {
+    ...StyleSheet.absoluteFillObject,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+  },
+  imageGradient: {
     position: "absolute",
     left: 0,
-    top: 0,
+    right: 0,
     bottom: 0,
-    borderRadius: 10,
-    overflow: "hidden",
-    zIndex: 0,
+    height: CARD_IMAGE_HEIGHT * 0.55,
   },
-  contentContainer: {
-    flex: 1,
-    padding: Spacing.md,
-    marginLeft: 100, // Offset for the blended image
-    zIndex: 1,
-    alignItems: "flex-end", // Align content to the right (since we forced LTR, but content is Arabic)
+  floatingBadge: {
+    position: "absolute",
+    top: Spacing.sm,
+    right: Spacing.sm,
   },
-  header: {
-    flexDirection: "row-reverse", // Reverse header for Arabic content (Badge vs Star)
-    justifyContent: "flex-start",
-    gap: Spacing.sm,
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-    width: "100%",
-  },
-  title: {
-    fontSize: 18,
-    fontFamily: Fonts.bdsans,
-    marginBottom: Spacing.xs,
-    textAlign: "right", // Right align Arabic text
-    width: "100%",
-  },
-  row: {
-    flexDirection: "row-reverse", // Reverse row for Arabic icon+text (Icon right, text left of it)
+  typeIndicator: {
+    position: "absolute",
+    top: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: Spacing.md,
-    width: "100%",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  typeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: Fonts.mdsans,
+  },
+  imageTimeOverlay: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    left: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  imageTimeText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: Fonts.mdsans,
+  },
+
+  /* ─── Content ─── */
+  content: {
+    padding: Spacing.md,
+    gap: 6,
+    direction: "rtl",
+  },
+  inlineBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: 2,
+  },
+  inlineType: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  inlineTypeText: {
+    fontSize: 10,
+    fontFamily: Fonts.mdsans,
+  },
+  title: {
+    fontSize: 17,
+    fontFamily: Fonts.bdsans,
+    lineHeight: 26,
+    paddingBottom: 3,
+
+    textAlign: "left",
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 13,
+    fontFamily: Fonts.rsans,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  locationRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 3,
+    flexShrink: 1,
   },
   mosque: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.rsans,
     textAlign: "right",
   },
-  footer: {
-    flexDirection: "row-reverse", // Reverse footer if needed, or just align right
-    alignItems: "center",
-    width: "100%",
-  },
-  time: {
-    fontSize: 14,
-    fontFamily: Fonts.mdsans,
-    textAlign: "right",
-  },
-  oneOffBadge: {
-    flexDirection: "row-reverse",
+  timeChip: {
+    flexDirection: "row",
     alignItems: "center",
     gap: 4,
-
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 20,
-    borderWidth: 1,
   },
-  oneOffText: {
-    fontSize: 11,
+  timeText: {
+    fontSize: 13,
     fontFamily: Fonts.mdsans,
   },
 });

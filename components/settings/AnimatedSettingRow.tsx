@@ -1,3 +1,6 @@
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -6,9 +9,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
-import { useTheme } from "@/context/ThemeContext";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -63,14 +63,19 @@ export default function AnimatedSettingRow({
         style={[
           animatedStyle,
           styles.row,
-          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+          !isLast && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+          },
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={!onPress && !rightElement}
       >
-        <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+        <View
+          style={[styles.iconContainer, { backgroundColor: colors.background }]}
+        >
           <Ionicons name={icon} size={22} color={colors.primary} />
         </View>
         <View style={styles.textContainer}>
@@ -83,7 +88,11 @@ export default function AnimatedSettingRow({
         </View>
         {rightElement ??
           (onPress ? (
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            <Ionicons
+              name="chevron-back"
+              size={18}
+              color={colors.textSecondary}
+            />
           ) : null)}
       </AnimatedPressable>
     </Animated.View>
@@ -102,11 +111,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm + 2,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: Spacing.sm + 4,
+    marginEnd: Spacing.sm + 4,
   },
   textContainer: {
     flex: 1,
-    paddingRight: 10,
+    paddingEnd: 10,
   },
   title: {
     fontSize: 15,

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
+import ScreenHeader from "@/components/settings/Header";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useTheme } from "@/context/ThemeContext";
+import i18n from "@/lib/i18n";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
-  View,
-  Text,
+  ScrollView,
   StyleSheet,
   Switch,
-  TouchableOpacity,
-  ScrollView,
+  Text,
+  View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
-import { useTheme } from "@/context/ThemeContext";
-import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n";
-import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
 
 export default function AppearanceScreen() {
   const { theme, toggleTheme } = useTheme();
@@ -40,6 +40,8 @@ export default function AppearanceScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      <ScreenHeader title="المظهر" />
+
       {/* Dark Mode */}
       <View style={styles.section}>
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
@@ -70,10 +72,22 @@ export default function AppearanceScreen() {
       </View>
 
       {/* Language */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
-          {t("settings.language").toUpperCase()}
-        </Text>
+      <View style={[styles.section, { opacity: 0.6 }]}>
+        <View style={styles.headerRow}>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
+            {t("settings.language").toUpperCase()}
+          </Text>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
+              {t("settings.comingSoon", "قريباً")}
+            </Text>
+          </View>
+        </View>
         <Animated.View
           entering={FadeInDown.delay(160)
             .springify()
@@ -86,7 +100,7 @@ export default function AppearanceScreen() {
           ]}
         >
           {["en", "fr", "ar"].map((lang) => (
-            <TouchableOpacity
+            <View
               key={lang}
               style={[
                 styles.languageOption,
@@ -96,7 +110,6 @@ export default function AppearanceScreen() {
                   margin: 3,
                 },
               ]}
-              onPress={() => changeLanguage(lang)}
             >
               <Text
                 style={[
@@ -112,7 +125,7 @@ export default function AppearanceScreen() {
                     ? "Français"
                     : "العربية"}
               </Text>
-            </TouchableOpacity>
+            </View>
           ))}
         </Animated.View>
       </View>
@@ -130,12 +143,27 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
   sectionHeader: {
     fontSize: 12,
     fontFamily: Fonts.mdsans,
-    marginBottom: Spacing.sm,
     letterSpacing: 1,
-    paddingHorizontal: Spacing.xs,
+  },
+  badge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 100,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.mdsans,
   },
   sectionCard: {
     borderRadius: BorderRadius.lg,

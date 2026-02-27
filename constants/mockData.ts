@@ -33,7 +33,7 @@ export interface Mosque {
   description?: string;
   imam?: string;
   capacity?: string;
-  services?: string;
+  services?: string[];
 }
 
 export const MOSQUES: Mosque[] = [

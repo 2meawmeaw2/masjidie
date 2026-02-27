@@ -1,25 +1,25 @@
-import React, { useCallback, useMemo, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Switch,
-  ScrollView,
-  TouchableOpacity,
-} from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
-import { Portal } from "@gorhom/portal";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
+import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
+import ScreenHeader from "@/components/settings/Header";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import { MethodKey, PrayerName, useAdhanStore } from "@/lib/stores/adhanStore";
+import { Ionicons } from "@expo/vector-icons";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { Portal } from "@gorhom/portal";
+import React, { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  useAdhanStore,
-  PrayerName,
-  MethodKey,
-} from "@/lib/stores/adhanStore";
-import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 const PRAYERS: { name: PrayerName; icon: keyof typeof Ionicons.glyphMap }[] = [
   { name: "fajr", icon: "sunny" },
@@ -76,6 +76,8 @@ export default function AdhanScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        <ScreenHeader title="الاذان" />
+
         {/* Prayer Toggles */}
         <View style={styles.section}>
           <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
@@ -88,7 +90,9 @@ export default function AdhanScreen() {
             ]}
           >
             {PRAYERS.map((prayer, index) => {
-              const timeEntry = todayTimes.find((te) => te.name === prayer.name);
+              const timeEntry = todayTimes.find(
+                (te) => te.name === prayer.name,
+              );
               const timeStr = timeEntry
                 ? timeEntry.time.toLocaleTimeString([], {
                     hour: "2-digit",
@@ -181,7 +185,11 @@ export default function AdhanScreen() {
                       {t(method.labelKey)}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={22} color={colors.primary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={22}
+                        color={colors.primary}
+                      />
                     )}
                   </TouchableOpacity>
                 </Animated.View>

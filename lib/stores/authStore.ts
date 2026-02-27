@@ -9,6 +9,7 @@ interface AuthState {
   session: Session | null;
   user: User | null;
   mosqueId: string | null;
+  isSuperAdmin: boolean;
   isLoading: boolean;
   error: string | null;
 
@@ -30,6 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   user: null,
   mosqueId: null,
+  isSuperAdmin: false,
   isLoading: false,
   error: null,
 
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         session,
         user: session?.user ?? null,
         mosqueId: session?.user?.user_metadata?.mosque_id ?? null,
+        isSuperAdmin: session?.user?.user_metadata?.role === "super_admin",
       });
     });
 
@@ -49,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         session,
         user: session?.user ?? null,
         mosqueId: session?.user?.user_metadata?.mosque_id ?? null,
+        isSuperAdmin: session?.user?.user_metadata?.role === "super_admin",
       });
     });
   },
@@ -101,6 +105,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, mosqueId: null });
+    set({ session: null, user: null, mosqueId: null, isSuperAdmin: false });
   },
 }));

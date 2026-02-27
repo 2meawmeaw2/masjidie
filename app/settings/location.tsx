@@ -1,31 +1,32 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  TextInput,
-} from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
+import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
+import ScreenHeader from "@/components/settings/Header";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
 import { getCurrentLocation } from "@/lib/location";
-import * as Location from "expo-location";
 import { searchLocation, SearchResult } from "@/lib/location-search";
 import {
-  saveLocation,
-  getSavedLocation,
   clearSavedLocation,
+  getSavedLocation,
   LocationData,
+  saveLocation,
 } from "@/lib/storage";
 import { useAdhanStore } from "@/lib/stores/adhanStore";
-import AnimatedSettingRow from "@/components/settings/AnimatedSettingRow";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 export default function LocationScreen() {
   const { theme } = useTheme();
@@ -125,6 +126,8 @@ export default function LocationScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      <ScreenHeader title="الموقع" />
+
       {/* Saved Location Display */}
       {savedLocationData && (
         <Animated.View
@@ -141,10 +144,7 @@ export default function LocationScreen() {
             </Text>
           </View>
           <Text
-            style={[
-              styles.savedLocationText,
-              { color: colors.textSecondary },
-            ]}
+            style={[styles.savedLocationText, { color: colors.textSecondary }]}
             numberOfLines={2}
           >
             {savedLocationData.display_name}
@@ -258,9 +258,7 @@ export default function LocationScreen() {
           </View>
         )}
         {query.length > 2 && !isSearching && results.length === 0 && (
-          <Text
-            style={[styles.noResultsText, { color: colors.textSecondary }]}
-          >
+          <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
             {t("settings.noResults")}
           </Text>
         )}

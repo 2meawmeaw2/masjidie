@@ -12,7 +12,7 @@ export interface SupabaseMosque {
   description: string | null;
   imam: string | null;
   capacity: string | null;
-  services: string | null;
+  services: string[] | null;
 }
 
 export function mapSupabaseMosqueToMosque(row: SupabaseMosque): Mosque {
@@ -29,6 +29,6 @@ export function mapSupabaseMosqueToMosque(row: SupabaseMosque): Mosque {
     description: row.description ?? undefined,
     imam: row.imam ?? undefined,
     capacity: row.capacity ?? undefined,
-    services: row.services ?? undefined,
+    services: row.services ?? [],
   };
 }

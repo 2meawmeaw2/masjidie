@@ -27,7 +27,7 @@ export default function SettingsLayout() {
         name="appearance"
         options={{
           animation: "ios_from_right",
-
+          headerShown: false,
           title: t("settings.appearanceTitle"),
         }}
       />
@@ -35,6 +35,7 @@ export default function SettingsLayout() {
         name="adhan"
         options={{
           animation: "ios_from_right",
+          headerShown: false,
 
           title: t("adhan.title"),
         }}
@@ -43,6 +44,7 @@ export default function SettingsLayout() {
         name="location"
         options={{
           animation: "ios_from_right",
+          headerShown: false,
 
           title: t("settings.locationTitle"),
         }}

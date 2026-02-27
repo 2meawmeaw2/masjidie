@@ -1,29 +1,39 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import ScreenHeader from "@/components/settings/Header";
 import { Colors, Shadows } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { useMosquesStore } from "@/lib/stores/mosquesStore";
 import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function AdminDashboard() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const shadow = Shadows[theme];
   const router = useRouter();
-  const { user, mosqueId, signOut } = useAuthStore();
+  const { user, mosqueId, isSuperAdmin, signOut } = useAuthStore();
   const { getMosqueById } = useMosquesStore();
   const { events, fetchEvents } = useEventsStore();
   const { fetchSchools, getSchoolByMosqueId } = useIslamicSchoolsStore();
+  const {
+    pendingCount,
+    fetchPendingCount,
+    fetchMyRequests,
+    myRequests,
+    mosqueApproved,
+    checkMosqueApproval,
+  } = useRequestsStore();
 
   const mosque = mosqueId ? getMosqueById(mosqueId) : null;
 
@@ -31,45 +41,99 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchEvents();
     fetchSchools();
-  }, []);
+    checkMosqueApproval();
+    if (isSuperAdmin) {
+      fetchPendingCount();
+    } else {
+      fetchMyRequests();
+    }
+  }, [isSuperAdmin]);
 
   const mosqueEvents = events.filter((e) => e.mosqueId === mosqueId);
   const mosqueSchool = mosqueId ? getSchoolByMosqueId(mosqueId) : null;
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace("/(tabs)/");
+    router.replace("/onboarding");
   };
 
-  const navItems = [
-    {
-      label: "Mosque Info",
-      description: "Edit details, address & services",
-      icon: "business" as const,
-      route: "/admin/mosque" as const,
-      color: colors.primary,
-    },
-    {
-      label: "Events",
-      description: `${mosqueEvents.length} event${mosqueEvents.length !== 1 ? "s" : ""}`,
-      icon: "calendar" as const,
-      route: "/admin/events" as const,
-      color: "#2563EB",
-    },
-    {
-      label: "School",
-      description: mosqueSchool ? "Has school" : "No school yet",
-      icon: "school" as const,
-      route: "/admin/editSchool" as const,
-      color: "#D97706",
-    },
+  const pendingMyRequests = myRequests.filter((r) => r.status === "pending");
+
+  interface NavItem {
+    label: string;
+    description: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    route: any;
+    color: string;
+    badgeCount: number;
+  }
+
+  let navItems: NavItem[] = [
+    ...(isSuperAdmin
+      ? [
+          {
+            label: "الطلبات المعلقة",
+            description:
+              pendingCount > 0
+                ? `${pendingCount} قيد الانتظار`
+                : "لا توجد طلبات",
+            icon: "document-text" as const,
+            route: "/admin/requests" as const,
+            color: "#D97706",
+            badgeCount: pendingCount,
+          },
+        ]
+      : [
+          {
+            label: "طلباتي",
+            description:
+              pendingMyRequests.length > 0
+                ? `${pendingMyRequests.length} قيد الانتظار`
+                : "أرشيف الطلبات",
+            icon: "document-text" as const,
+            route: "/admin/requests" as const,
+            color: "#D97706",
+            badgeCount: pendingMyRequests.length,
+          },
+        ]),
   ];
+
+  if (isSuperAdmin || mosqueApproved) {
+    navItems.push(
+      {
+        label: "معلومات المسجد",
+        description: "تعديل التفاصيل، العنوان والخدمات",
+        icon: "business" as const,
+        route: "/admin/mosque" as const,
+        color: colors.primary,
+        badgeCount: 0,
+      },
+      {
+        label: "الفعاليات",
+        description: `${mosqueEvents.length} فعالية${mosqueEvents.length !== 1 ? "s" : ""}`,
+        icon: "calendar" as const,
+        route: "/admin/events" as const,
+        color: "#2563EB",
+        badgeCount: 0,
+      },
+      {
+        label: "المدرسة",
+        description: mosqueSchool ? "تم إنشاء مدرسة" : "لا توجد مدرسة بعد",
+        icon: "school" as const,
+        route: "/admin/editSchool" as const,
+        color: "#D97706",
+        badgeCount: 0,
+      },
+    );
+  }
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
+      <ScreenHeader title="لوحة تحكم المشرف" />
+
       {/* Welcome header */}
       <View
         style={[
@@ -82,12 +146,39 @@ export default function AdminDashboard() {
           <Ionicons name="shield-checkmark" size={28} color="#fff" />
         </View>
         <View style={styles.welcomeInfo}>
-          <Text style={styles.welcomeLabel}>Welcome back</Text>
-          <Text style={styles.welcomeEmail} numberOfLines={1}>
+          <Text style={[styles.welcomeLabel, { textAlign: "left" }]}>
+            مرحباً بعودتك
+          </Text>
+          <Text
+            style={[styles.welcomeEmail, { textAlign: "left" }]}
+            numberOfLines={1}
+          >
             {user?.email}
           </Text>
         </View>
       </View>
+
+      {/* Banner */}
+      {!isSuperAdmin && !mosqueApproved && (
+        <View
+          style={[
+            styles.pendingBanner,
+            {
+              backgroundColor: colors.primary + "15",
+              borderColor: colors.primary,
+            },
+          ]}
+        >
+          <Ionicons
+            name="information-circle"
+            size={24}
+            color={colors.primary}
+          />
+          <Text style={[styles.pendingBannerText, { color: colors.text }]}>
+            تسجيلك قيد المراجعة. ستتمكن من إدارة مسجدك بمجرد الموافقة عليه.
+          </Text>
+        </View>
+      )}
 
       {/* Mosque info */}
       {mosque && (
@@ -108,7 +199,7 @@ export default function AdminDashboard() {
           </View>
           <View style={styles.mosqueInfo}>
             <Text style={[styles.mosqueLabel, { color: colors.textSecondary }]}>
-              Managing
+              إدارة
             </Text>
             <Text
               style={[styles.mosqueName, { color: colors.text }]}
@@ -132,16 +223,25 @@ export default function AdminDashboard() {
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
-          <Ionicons name="alert-circle" size={20} color={colors.textSecondary} />
-          <Text style={[styles.mosqueLabel, { color: colors.textSecondary, marginLeft: 8 }]}>
-            Mosque ID: {mosqueId}
+          <Ionicons
+            name="alert-circle"
+            size={20}
+            color={colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.mosqueLabel,
+              { color: colors.textSecondary, marginLeft: 8 },
+            ]}
+          >
+            معرف المسجد: {mosqueId}
           </Text>
         </View>
       )}
 
       {/* Navigation grid */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-        Manage
+        الإدارة
       </Text>
       <View style={styles.navGrid}>
         {navItems.map((item) => (
@@ -152,16 +252,23 @@ export default function AdminDashboard() {
               { backgroundColor: colors.card, borderColor: colors.border },
               shadow,
             ]}
-            onPress={() => router.push(item.route)}
+            onPress={() => router.push(item.route as any)}
             activeOpacity={0.7}
           >
-            <View
-              style={[
-                styles.navIconWrap,
-                { backgroundColor: item.color + "15" },
-              ]}
-            >
-              <Ionicons name={item.icon} size={24} color={item.color} />
+            <View style={{ position: "relative" }}>
+              <View
+                style={[
+                  styles.navIconWrap,
+                  { backgroundColor: item.color + "15" },
+                ]}
+              >
+                <Ionicons name={item.icon} size={24} color={item.color} />
+              </View>
+              {item.badgeCount > 0 && (
+                <View style={styles.navBadge}>
+                  <Text style={styles.navBadgeText}>{item.badgeCount}</Text>
+                </View>
+              )}
             </View>
             <Text style={[styles.navLabel, { color: colors.text }]}>
               {item.label}
@@ -191,7 +298,7 @@ export default function AdminDashboard() {
       >
         <Ionicons name="log-out-outline" size={18} color={colors.error} />
         <Text style={[styles.signOutText, { color: colors.error }]}>
-          Sign Out
+          تسجيل الخروج
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -302,6 +409,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   navArrow: { marginLeft: "auto" },
+  navBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#DC2626",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  navBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "IBMPlexSansArabic-Bold",
+  },
 
   // Sign out
   signOutButton: {
@@ -317,5 +441,21 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 15,
     fontFamily: "IBMPlexSansArabic-SemiBold",
+  },
+
+  // Banner
+  pendingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+  },
+  pendingBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "IBMPlexSansArabic-Medium",
+    lineHeight: 20,
   },
 });

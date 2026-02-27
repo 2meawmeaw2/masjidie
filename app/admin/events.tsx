@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import ScreenHeader from "@/components/settings/Header";
 import { Colors, Shadows } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useEventsStore } from "@/lib/stores/eventsStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
 import { PRAYER_LABELS, PrayerId } from "@/lib/types/schedule";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface EventRow {
   id: string;
@@ -30,7 +32,15 @@ interface EventRow {
   day_of_week: number | null;
 }
 
-const DAY_LABELS_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS_SHORT = [
+  "الأحد",
+  "الإثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 
 function eventSubtitle(item: EventRow): string {
   if (item.time_anchor === "prayer" && item.prayer_id) {
@@ -47,11 +57,11 @@ function eventSubtitle(item: EventRow): string {
 }
 
 function eventTypeBadge(item: EventRow): { label: string; color: string } {
-  if (item.type === "one_off") return { label: "One-off", color: "#D97706" };
+  if (item.type === "one_off") return { label: "لمرة واحدة", color: "#D97706" };
   const day =
     item.day_of_week != null ? DAY_LABELS_SHORT[item.day_of_week] : null;
   return {
-    label: day ? `Every ${day}` : "Recurring",
+    label: day ? `كل ${day}` : "متكرر",
     color: "#2563EB",
   };
 }
@@ -61,11 +71,18 @@ export default function AdminEventsScreen() {
   const colors = Colors[theme];
   const shadow = Shadows[theme];
   const router = useRouter();
-  const { mosqueId } = useAuthStore();
+  const { mosqueId, isSuperAdmin } = useAuthStore();
   const { invalidateCache } = useEventsStore();
+  const { submitRequest, mosqueApproved } = useRequestsStore();
 
   const [events, setEvents] = useState<EventRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isSuperAdmin && !mosqueApproved) {
+      router.replace("/admin");
+    }
+  }, [isSuperAdmin, mosqueApproved]);
 
   const loadEvents = async () => {
     if (!mosqueId) return;
@@ -73,7 +90,7 @@ export default function AdminEventsScreen() {
     const { data, error } = await supabase
       .from("events_activities")
       .select(
-        "id, title, date, type, category_id, time_anchor, prayer_id, prayer_offset, start_time, day_of_week"
+        "id, title, date, type, category_id, time_anchor, prayer_id, prayer_offset, start_time, day_of_week",
       )
       .eq("mosque_id", mosqueId)
       .order("title");
@@ -85,19 +102,35 @@ export default function AdminEventsScreen() {
   };
 
   useEffect(() => {
-    loadEvents();
-  }, [mosqueId]);
+    if (isSuperAdmin || mosqueApproved) {
+      loadEvents();
+    }
+  }, [mosqueId, isSuperAdmin, mosqueApproved]);
 
   const handleDelete = (id: string, title: string) => {
-    Alert.alert("Delete Event", `Delete "${title}"?`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("حذف الفعالية", `هل أنت متأكد من حذف "${title}"؟`, [
+      { text: "إلغاء", style: "cancel" },
       {
-        text: "Delete",
+        text: "حذف",
         style: "destructive",
         onPress: async () => {
-          await supabase.from("events_activities").delete().eq("id", id);
-          invalidateCache();
-          setEvents((prev) => prev.filter((e) => e.id !== id));
+          if (isSuperAdmin) {
+            await supabase.from("events_activities").delete().eq("id", id);
+            invalidateCache();
+            setEvents((prev) => prev.filter((e) => e.id !== id));
+          } else {
+            const ok = await submitRequest(
+              "delete_event",
+              "events_activities",
+              id,
+              { id, title },
+            );
+            if (ok) {
+              Alert.alert("تم الإرسال", "تم إرسال طلب الحذف للمراجعة.");
+            } else {
+              Alert.alert("خطأ", "فشل في إرسال طلب التحديث.");
+            }
+          }
         },
       },
     ]);
@@ -112,7 +145,7 @@ export default function AdminEventsScreen() {
           color={colors.textSecondary}
         />
         <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-          No mosque assigned to your account.
+          لا يوجد مسجد مرتبط بحسابك.
         </Text>
       </View>
     );
@@ -121,19 +154,24 @@ export default function AdminEventsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header area */}
+      <ScreenHeader title="فعاليات" />
       <View style={styles.headerRow}>
         <View style={styles.headerInfo}>
           <Text style={[styles.countText, { color: colors.text }]}>
-            {events.length} event{events.length !== 1 ? "s" : ""}
+            {events.length} فعالية
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.newButton, { backgroundColor: colors.primary }, shadow]}
+          style={[
+            styles.newButton,
+            { backgroundColor: colors.primary },
+            shadow,
+          ]}
           onPress={() => router.push("/admin/editEvent")}
           activeOpacity={0.7}
         >
           <Ionicons name="add" size={18} color="#fff" />
-          <Text style={styles.newButtonText}>New Event</Text>
+          <Text style={styles.newButtonText}>إضافة فعالية</Text>
         </TouchableOpacity>
       </View>
 
@@ -156,12 +194,10 @@ export default function AdminEventsScreen() {
                 color={colors.textSecondary}
               />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                No events yet
+                لا توجد فعاليات بعد
               </Text>
-              <Text
-                style={[styles.emptyHint, { color: colors.textSecondary }]}
-              >
-                Tap "New Event" to create one
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+                اضغط على "إضافة فعالية" لإنشاء واحدة
               </Text>
             </View>
           }
@@ -225,10 +261,7 @@ export default function AdminEventsScreen() {
                         ]}
                       >
                         <Text
-                          style={[
-                            styles.badgeText,
-                            { color: colors.primary },
-                          ]}
+                          style={[styles.badgeText, { color: colors.primary }]}
                         >
                           {item.category_id}
                         </Text>

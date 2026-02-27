@@ -1,23 +1,24 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
 import { PRAYER_IDS, PRAYER_LABELS, PrayerId } from "@/lib/types/schedule";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const CATEGORY_IDS = [
   "tafsir",
@@ -30,18 +31,33 @@ const CATEGORY_IDS = [
   "women",
 ];
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS = [
+  "الأحد",
+  "الإثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
 
 export default function EditEventScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { mosqueId } = useAuthStore();
+  const { mosqueId, isSuperAdmin } = useAuthStore();
   const { invalidateCache } = useEventsStore();
+  const { submitRequest, mosqueApproved } = useRequestsStore();
   const { getMosqueById } = useMosquesStore();
 
   const mosque = mosqueId ? getMosqueById(mosqueId) : null;
+
+  useEffect(() => {
+    if (!isSuperAdmin && !mosqueApproved) {
+      router.replace("/admin");
+    }
+  }, [isSuperAdmin, mosqueApproved]);
 
   const [form, setForm] = useState({
     title: "",
@@ -96,7 +112,7 @@ export default function EditEventScreen() {
 
   const handleSave = async () => {
     if (!form.title.trim()) {
-      Alert.alert("Validation", "Title is required.");
+      Alert.alert("تنبيه", "العنوان مطلوب.");
       return;
     }
     if (!mosqueId) return;
@@ -117,7 +133,7 @@ export default function EditEventScreen() {
           ? Number(form.day_of_week)
           : null,
       instructor: form.instructor || null,
-      image_url: form.image_url || null,
+      image_url: form.image_url || mosque?.imageUrl || null,
       mosque_id: mosqueId,
       mosque_name: mosque?.name ?? null,
       mosque_city: mosque?.city ?? null,
@@ -136,22 +152,41 @@ export default function EditEventScreen() {
       payload.prayer_offset = signedOffset;
     }
 
-    let error;
-    if (id) {
-      ({ error } = await supabase
-        .from("events_activities")
-        .update(payload)
-        .eq("id", id));
-    } else {
-      payload.id = `evt_${Date.now()}`;
-      ({ error } = await supabase.from("events_activities").insert(payload));
-    }
+    if (isSuperAdmin) {
+      let error;
+      if (id) {
+        ({ error } = await supabase
+          .from("events_activities")
+          .update(payload)
+          .eq("id", id));
+      } else {
+        payload.id = `evt_${Date.now()}`;
+        ({ error } = await supabase.from("events_activities").insert(payload));
+      }
 
-    if (error) {
-      Alert.alert("Error", error.message);
+      if (error) {
+        Alert.alert("خطأ", error.message);
+      } else {
+        invalidateCache();
+        router.back();
+      }
     } else {
-      invalidateCache();
-      router.back();
+      const recordId = id ?? `evt_${Date.now()}`;
+      if (!id) payload.id = recordId;
+      const actionType = id ? "update_event" : "create_event";
+      const ok = await submitRequest(
+        actionType,
+        "events_activities",
+        recordId,
+        payload as Record<string, unknown>,
+      );
+      if (ok) {
+        Alert.alert("تم الإرسال", "تم إرسال طلب الفعالية للمراجعة.", [
+          { text: "موافق", onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert("خطأ", "فشل في إرسال طلب الفعالية.");
+      }
     }
     setIsSaving(false);
   };
@@ -186,7 +221,7 @@ export default function EditEventScreen() {
       multiline?: boolean;
       keyboard?: "default" | "numeric";
       placeholder?: string;
-    }
+    },
   ) => (
     <View style={styles.fieldGroup} key={key}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -216,13 +251,16 @@ export default function EditEventScreen() {
     label: string,
     isActive: boolean,
     onPress: () => void,
-    size: "sm" | "md" = "sm"
+    size: "sm" | "md" = "sm",
   ) => (
     <TouchableOpacity
       style={[
         styles.chip,
         { borderColor: colors.border },
-        isActive && { backgroundColor: colors.primary, borderColor: colors.primary },
+        isActive && {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+        },
         size === "md" && styles.chipMd,
       ]}
       onPress={onPress}
@@ -245,92 +283,106 @@ export default function EditEventScreen() {
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.heading, { color: colors.text }]}>
-        {id ? "Edit Event" : "New Event"}
+        {id ? "تعديل الفعالية" : "فعالية جديدة"}
       </Text>
 
       {/* ── Basic Info ── */}
-      {sectionHeader("Basic Info")}
+      {sectionHeader("معلومات أساسية")}
       {sectionCard(
         <>
-          {field("Title *", "title")}
-          {field("Description", "description", { multiline: true })}
-          {field("Instructor", "instructor")}
-          {field("Image URL", "image_url", { placeholder: "https://..." })}
-        </>
+          {field("العنوان *", "title")}
+          {field("الوصف", "description", { multiline: true })}
+          {field("المُحاضِـر / المعلم", "instructor")}
+          {field("رابط الصورة", "image_url", { placeholder: "https://..." })}
+        </>,
       )}
 
       {/* ── Category ── */}
-      {sectionHeader("Category")}
+      {sectionHeader("الفئة")}
       {sectionCard(
         <View style={styles.fieldGroup}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.chipRow}>
               {CATEGORY_IDS.map((cat) =>
                 chip(cat, form.category_id === cat, () =>
-                  setForm((f) => ({ ...f, category_id: cat }))
-                )
+                  setForm((f) => ({ ...f, category_id: cat })),
+                ),
               )}
             </View>
           </ScrollView>
-        </View>
+        </View>,
       )}
 
       {/* ── Schedule Type ── */}
-      {sectionHeader("Schedule Type")}
+      {sectionHeader("نوع الموعد")}
       {sectionCard(
         <>
           <View style={styles.fieldGroup}>
             <View style={styles.chipRow}>
-              {chip("Recurring", form.type === "recurring", () =>
-                setForm((f) => ({ ...f, type: "recurring" })), "md"
+              {chip(
+                "متكرر",
+                form.type === "recurring",
+                () => setForm((f) => ({ ...f, type: "recurring" })),
+                "md",
               )}
-              {chip("One-off", form.type === "one_off", () =>
-                setForm((f) => ({ ...f, type: "one_off" })), "md"
+              {chip(
+                "لمرة واحدة",
+                form.type === "one_off",
+                () => setForm((f) => ({ ...f, type: "one_off" })),
+                "md",
               )}
             </View>
           </View>
 
           {form.type === "one_off" &&
-            field("Date (YYYY-MM-DD)", "date", { placeholder: "2026-03-15" })}
+            field("التاريخ (YYYY-MM-DD)", "date", {
+              placeholder: "2026-03-15",
+            })}
 
           {form.type === "recurring" && (
             <View style={styles.fieldGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>
-                Day of Week
+                يوم الأسبوع
               </Text>
               <View style={styles.chipRow}>
                 {DAY_LABELS.map((day, i) =>
                   chip(day, form.day_of_week === String(i), () =>
-                    setForm((f) => ({ ...f, day_of_week: String(i) }))
-                  )
+                    setForm((f) => ({ ...f, day_of_week: String(i) })),
+                  ),
                 )}
               </View>
             </View>
           )}
-        </>
+        </>,
       )}
 
       {/* ── Time Scheduling ── */}
-      {sectionHeader("Time Scheduling")}
+      {sectionHeader("جدولة الوقت")}
       {sectionCard(
         <>
           <View style={styles.fieldGroup}>
             <View style={styles.chipRow}>
-              {chip("Specific Time", form.time_anchor === "fixed", () =>
-                setForm((f) => ({ ...f, time_anchor: "fixed" })), "md"
+              {chip(
+                "وقت محدد",
+                form.time_anchor === "fixed",
+                () => setForm((f) => ({ ...f, time_anchor: "fixed" })),
+                "md",
               )}
-              {chip("Relative to Prayer", form.time_anchor === "prayer", () =>
-                setForm((f) => ({ ...f, time_anchor: "prayer" })), "md"
+              {chip(
+                "بالنسبة لوقت الصلاة",
+                form.time_anchor === "prayer",
+                () => setForm((f) => ({ ...f, time_anchor: "prayer" })),
+                "md",
               )}
             </View>
           </View>
 
           {form.time_anchor === "fixed" ? (
             <>
-              {field("Start Time (HH:MM)", "start_time", {
+              {field("وقت البداية (HH:MM)", "start_time", {
                 placeholder: "18:30",
               })}
-              {field("End Time (HH:MM)", "end_time", {
+              {field("وقت الانتهاء (HH:MM)", "end_time", {
                 placeholder: "19:30",
               })}
             </>
@@ -339,7 +391,7 @@ export default function EditEventScreen() {
               {/* Prayer picker */}
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  Prayer
+                  الصلاة
                 </Text>
                 <View style={styles.chipRow}>
                   {PRAYER_IDS.map((pid) =>
@@ -347,8 +399,8 @@ export default function EditEventScreen() {
                       PRAYER_LABELS[pid],
                       form.prayer_id === pid,
                       () => setForm((f) => ({ ...f, prayer_id: pid })),
-                      "md"
-                    )
+                      "md",
+                    ),
                   )}
                 </View>
               </View>
@@ -356,39 +408,56 @@ export default function EditEventScreen() {
               {/* Before / After */}
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
-                  Timing
+                  التوقيت
                 </Text>
                 <View style={styles.chipRow}>
-                  {chip("قبل (Before)", form.prayer_direction === "before", () =>
-                    setForm((f) => ({ ...f, prayer_direction: "before" })), "md"
+                  {chip(
+                    "قبل",
+                    form.prayer_direction === "before",
+                    () =>
+                      setForm((f) => ({ ...f, prayer_direction: "before" })),
+                    "md",
                   )}
-                  {chip("بعد (After)", form.prayer_direction === "after", () =>
-                    setForm((f) => ({ ...f, prayer_direction: "after" })), "md"
+                  {chip(
+                    "بعد",
+                    form.prayer_direction === "after",
+                    () => setForm((f) => ({ ...f, prayer_direction: "after" })),
+                    "md",
                   )}
                 </View>
               </View>
 
               {/* Offset */}
-              {field("Minutes offset", "prayer_offset", {
+              {field("الفارق الزمني (بالدقائق)", "prayer_offset", {
                 keyboard: "numeric",
                 placeholder: "0",
               })}
 
               {/* Preview */}
-              <View style={[styles.previewBox, { backgroundColor: colors.background }]}>
-                <Text style={[styles.previewText, { color: colors.textSecondary }]}>
+              <View
+                style={[
+                  styles.previewBox,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <Text
+                  style={[styles.previewText, { color: colors.textSecondary }]}
+                >
                   {(() => {
-                    const pLabel = PRAYER_LABELS[form.prayer_id as PrayerId] ?? form.prayer_id;
+                    const pLabel =
+                      PRAYER_LABELS[form.prayer_id as PrayerId] ??
+                      form.prayer_id;
                     const mins = parseInt(form.prayer_offset, 10) || 0;
                     if (mins === 0) return `عند ${pLabel}`;
-                    const dir = form.prayer_direction === "before" ? "قبل" : "بعد";
+                    const dir =
+                      form.prayer_direction === "before" ? "قبل" : "بعد";
                     return `${dir} ${pLabel} بـ ${mins} د`;
                   })()}
                 </Text>
               </View>
             </>
           )}
-        </>
+        </>,
       )}
 
       <TouchableOpacity
@@ -405,7 +474,7 @@ export default function EditEventScreen() {
         ) : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>حفظ</Text>
           </>
         )}
       </TouchableOpacity>
@@ -417,7 +486,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: 20, paddingBottom: 40 },
-  heading: { fontSize: 22, fontFamily: "IBMPlexSansArabic-Bold", marginBottom: 20 },
+  heading: {
+    fontSize: 22,
+    fontFamily: "IBMPlexSansArabic-Bold",
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontSize: 15,
     fontFamily: "IBMPlexSansArabic-Bold",
@@ -433,7 +506,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   fieldGroup: { marginBottom: 12 },
-  label: { fontSize: 13, fontFamily: "IBMPlexSansArabic-Medium", marginBottom: 4 },
+  label: {
+    fontSize: 13,
+    fontFamily: "IBMPlexSansArabic-Medium",
+    marginBottom: 4,
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,
@@ -469,5 +546,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
-  saveButtonText: { color: "#fff", fontFamily: "IBMPlexSansArabic-Bold", fontSize: 16 },
+  saveButtonText: {
+    color: "#fff",
+    fontFamily: "IBMPlexSansArabic-Bold",
+    fontSize: 16,
+  },
 });

@@ -1,26 +1,31 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
-import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
+import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
-const GENDER_OPTIONS: { value: "male" | "female" | "mixed"; label: string; icon: string }[] = [
-  { value: "male", label: "Male", icon: "male" },
-  { value: "female", label: "Female", icon: "female" },
-  { value: "mixed", label: "Mixed", icon: "people" },
+const GENDER_OPTIONS: {
+  value: "male" | "female" | "mixed";
+  label: string;
+  icon: string;
+}[] = [
+  { value: "male", label: "ذكور", icon: "male" },
+  { value: "female", label: "إناث", icon: "female" },
+  { value: "mixed", label: "مختلط", icon: "people" },
 ];
 
 export default function EditSchoolScreen() {
@@ -28,9 +33,16 @@ export default function EditSchoolScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { mosqueId } = useAuthStore();
+  const { mosqueId, isSuperAdmin } = useAuthStore();
   const { invalidateCache, fetchSchools, getSchoolByMosqueId } =
     useIslamicSchoolsStore();
+  const { mosqueApproved } = useRequestsStore();
+
+  useEffect(() => {
+    if (!isSuperAdmin && !mosqueApproved) {
+      router.replace("/admin");
+    }
+  }, [isSuperAdmin, mosqueApproved]);
 
   const [schoolId, setSchoolId] = useState<string | null>(id ?? null);
   const [form, setForm] = useState({
@@ -104,12 +116,12 @@ export default function EditSchoolScreen() {
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      Alert.alert("Validation", "Name is required.");
+      Alert.alert("تنبيه", "الاسم مطلوب.");
       return;
     }
     setIsSaving(true);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: form.name,
       description: form.description || null,
       city: form.city || null,
@@ -130,47 +142,85 @@ export default function EditSchoolScreen() {
       mosque_id: mosqueId ?? null,
     };
 
-    let error;
-    if (schoolId) {
-      ({ error } = await supabase
-        .from("quran_schools")
-        .update(payload)
-        .eq("id", schoolId));
-    } else {
-      ({ error } = await supabase.from("quran_schools").insert(payload));
-    }
+    if (isSuperAdmin) {
+      let error;
+      if (schoolId) {
+        ({ error } = await supabase
+          .from("quran_schools")
+          .update(payload)
+          .eq("id", schoolId));
+      } else {
+        ({ error } = await supabase.from("quran_schools").insert(payload));
+      }
 
-    if (error) {
-      Alert.alert("Error", error.message);
+      if (error) {
+        Alert.alert("خطأ", error.message);
+      } else {
+        invalidateCache();
+        await fetchSchools(true);
+        router.back();
+      }
     } else {
-      invalidateCache();
-      await fetchSchools(true);
-      router.back();
+      const { submitRequest } = useRequestsStore.getState();
+      const recordId = schoolId ?? `s_${Date.now()}`;
+      if (!schoolId) payload.id = recordId;
+      const actionType = schoolId ? "update_school" : "create_school";
+      const ok = await submitRequest(
+        actionType,
+        "quran_schools",
+        recordId,
+        payload,
+      );
+      if (ok) {
+        Alert.alert("تم الإرسال", "تم إرسال طلب التعديل للمراجعة.", [
+          { text: "موافق", onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert("خطأ", "فشل في إرسال الطلب.");
+      }
     }
     setIsSaving(false);
   };
 
   const handleDelete = () => {
     if (!schoolId) return;
-    Alert.alert("Remove School", "Are you sure you want to remove this school?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("حذف المدرسة", "هل أنت متأكد من حذف هذه المدرسة؟", [
+      { text: "إلغاء", style: "cancel" },
       {
-        text: "Remove",
+        text: "حذف",
         style: "destructive",
         onPress: async () => {
           setIsDeleting(true);
-          const { error } = await supabase
-            .from("quran_schools")
-            .delete()
-            .eq("id", schoolId);
+          if (isSuperAdmin) {
+            const { error } = await supabase
+              .from("quran_schools")
+              .delete()
+              .eq("id", schoolId);
 
-          if (error) {
-            Alert.alert("Error", error.message);
-            setIsDeleting(false);
+            if (error) {
+              Alert.alert("خطأ", error.message);
+              setIsDeleting(false);
+            } else {
+              invalidateCache();
+              await fetchSchools(true);
+              router.back();
+            }
           } else {
-            invalidateCache();
-            await fetchSchools(true);
-            router.back();
+            const { submitRequest } = useRequestsStore.getState();
+            const ok = await submitRequest(
+              "delete_school",
+              "quran_schools",
+              schoolId,
+              { id: schoolId },
+            );
+            if (ok) {
+              Alert.alert("تم الإرسال", "تم إرسال طلب الحذف للمراجعة.", [
+                { text: "موافق", onPress: () => router.back() },
+              ]);
+            } else {
+              Alert.alert("خطأ", "فشل في إرسال طلب الحذف.");
+              setIsDeleting(false);
+            }
           }
         },
       },
@@ -209,7 +259,7 @@ export default function EditSchoolScreen() {
       multiline?: boolean;
       keyboard?: "default" | "numeric" | "email-address" | "url";
       placeholder?: string;
-    }
+    },
   ) => (
     <View style={styles.fieldGroup} key={key}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -240,7 +290,7 @@ export default function EditSchoolScreen() {
     label: string,
     isActive: boolean,
     onPress: () => void,
-    icon?: string
+    icon?: string,
   ) => (
     <TouchableOpacity
       style={[
@@ -280,67 +330,70 @@ export default function EditSchoolScreen() {
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.heading, { color: colors.text }]}>
-        {isEditing ? "Edit School" : "New School"}
+        {isEditing ? "تعديل المدرسة" : "مدرسة جديدة"}
       </Text>
 
       {/* Basic Info */}
-      {sectionHeader("Basic Info")}
+      {sectionHeader("تعلومات أساسية")}
       {sectionCard(
         <>
-          {field("Name *", "name")}
-          {field("Description", "description", { multiline: true })}
-          {field("Image URL", "image_url", {
+          {field("الاسم *", "name")}
+          {field("الوصف", "description", { multiline: true })}
+          {field("رابط الصورة", "image_url", {
             keyboard: "url",
             placeholder: "https://...",
           })}
-        </>
+        </>,
       )}
 
       {/* Location */}
-      {sectionHeader("Location")}
+      {sectionHeader("الموقع")}
       {sectionCard(
         <>
-          {field("City", "city")}
-          {field("Address", "address")}
-        </>
+          {field("المدينة", "city")}
+          {field("العنوان", "address")}
+        </>,
       )}
 
       {/* Contact */}
-      {sectionHeader("Contact")}
+      {sectionHeader("تواصل")}
       {sectionCard(
         <>
-          {field("Phone", "phone")}
-          {field("Email", "email", { keyboard: "email-address" })}
-          {field("Website", "website", {
+          {field("الهاتف", "phone")}
+          {field("البريد الإلكتروني", "email", { keyboard: "email-address" })}
+          {field("الموقع الإلكتروني", "website", {
             keyboard: "url",
             placeholder: "https://...",
           })}
-        </>
+        </>,
       )}
 
       {/* Programs & Students */}
-      {sectionHeader("Programs & Students")}
+      {sectionHeader("البرامج والطلاب")}
       {sectionCard(
         <>
-          {field("Programs (comma-separated)", "programs", {
+          {field("البرامج (مفصولة بفواصل)", "programs", {
             placeholder: "تحفيظ القرآن, العلوم الشرعية, ...",
           })}
-          {field("Age Range", "age_range", { placeholder: "6 - 18 سنة" })}
-          {field("Student Count", "student_count", { keyboard: "numeric" })}
+          {field("الفئة العمرية", "age_range", { placeholder: "6 - 18 سنة" })}
+          {field("عدد الطلاب", "student_count", { keyboard: "numeric" })}
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Gender
+              الجنس
             </Text>
             <View style={styles.chipRow}>
               {GENDER_OPTIONS.map((g) =>
-                chip(g.label, form.gender === g.value, () =>
-                  setForm((f) => ({ ...f, gender: g.value })), g.icon
-                )
+                chip(
+                  g.label,
+                  form.gender === g.value,
+                  () => setForm((f) => ({ ...f, gender: g.value })),
+                  g.icon,
+                ),
               )}
             </View>
           </View>
-        </>
+        </>,
       )}
 
       <TouchableOpacity
@@ -357,7 +410,7 @@ export default function EditSchoolScreen() {
         ) : (
           <>
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>حفظ</Text>
           </>
         )}
       </TouchableOpacity>
@@ -379,7 +432,7 @@ export default function EditSchoolScreen() {
             <>
               <Ionicons name="trash-outline" size={18} color={colors.error} />
               <Text style={[styles.deleteButtonText, { color: colors.error }]}>
-                Remove School
+                إزالة المدرسة
               </Text>
             </>
           )}

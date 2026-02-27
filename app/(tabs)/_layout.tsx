@@ -1,8 +1,7 @@
+import { AnimatedTabBar } from "@/components/navigation/AnimatedTabBar";
 import { Tabs } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatedTabBar } from "@/components/navigation/AnimatedTabBar";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -47,7 +46,6 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      <ThemeToggle />
     </>
   );
 }
