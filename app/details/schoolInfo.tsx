@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -20,7 +20,6 @@ import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 
 export default function SchoolDetails() {
-  const router = useRouter();
   const { id } = useLocalSearchParams();
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];

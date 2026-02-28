@@ -2,8 +2,7 @@ import { ActivityCard } from "@/components/ActivityCard";
 import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
 import { MosqueCard } from "@/components/MosqueCard";
 import { AmbientBackground } from "@/components/ui/ambientBG";
-import { CATEGORIES, CategoryId } from "@/constants/categories";
-import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { calculateDistance, getPreferredLocation } from "@/lib/location";
 import { useEventsStore } from "@/lib/stores/eventsStore";
@@ -15,12 +14,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,7 +37,6 @@ export default function ExploreScreen() {
   } = useIslamicSchoolsStore();
   const {
     mosques,
-    isLoading: mosquesLoading,
     fetchMosques,
   } = useMosquesStore();
 
@@ -82,46 +78,6 @@ export default function ExploreScreen() {
     })();
   }, [mosques]);
 
-  const renderCategories = () => (
-    <View style={styles.sectionContainer}>
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.md,
-          gap: Spacing.sm,
-        }}
-        data={
-          Object.entries(CATEGORIES) as [
-            CategoryId,
-            (typeof CATEGORIES)[CategoryId],
-          ][]
-        }
-        renderItem={({ item: [id, cat] }) => (
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              { backgroundColor: theme.card, borderColor: theme.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: `${cat.color}20` },
-              ]}
-            >
-              <Ionicons name={cat.icon as any} size={18} color={cat.color} />
-            </View>
-            <Text style={[styles.categoryLabel, { color: theme.text }]}>
-              {t(cat.label)}
-            </Text>
-          </TouchableOpacity>
-        )}
-        keyExtractor={([id]) => id}
-      />
-    </View>
-  );
-
   const renderFeatured = () => (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
@@ -161,7 +117,7 @@ export default function ExploreScreen() {
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: theme.tint }]}>
-          المدارس القرآنية
+          {t("home.quranSchools")}
         </Text>
       </View>
       <View style={{ paddingHorizontal: Spacing.md }}>
@@ -263,22 +219,5 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 18,
     fontFamily: Fonts.bdsans,
-  },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Spacing.sm,
-    paddingRight: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  iconContainer: {
-    padding: 6,
-    borderRadius: BorderRadius.full,
-  },
-  categoryLabel: {
-    fontSize: 14,
-    fontFamily: Fonts.mdsans,
   },
 });

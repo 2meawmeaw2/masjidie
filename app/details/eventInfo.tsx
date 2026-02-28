@@ -9,7 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -24,7 +24,6 @@ import { AddToScheduleSheet } from "@/components/AddToScheduleSheet";
 import * as Haptics from "expo-haptics";
 
 export default function EventDetails() {
-  const router = useRouter();
   const { id } = useLocalSearchParams();
   const { t } = useTranslation();
   const colorScheme = useColorScheme() ?? "light";

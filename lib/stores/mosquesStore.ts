@@ -1,7 +1,11 @@
 import { Mosque } from "@/constants/mockData";
+import { extractCoordsFromUrl, resolveGoogleMapsLink } from "@/lib/location";
 import { supabase } from "@/lib/supabase";
 import { SupabaseMosque, mapSupabaseMosqueToMosque } from "@/lib/types/mosque";
 import { create } from "zustand";
+
+// Re-export for backwards compatibility
+export { extractCoordsFromUrl, resolveGoogleMapsLink };
 
 // ──────────────────────────────────────────────
 // Cache configuration
@@ -21,83 +25,6 @@ async function fetchMosquesFromAPI(): Promise<Mosque[]> {
   }
 
   return (data as SupabaseMosque[]).map(mapSupabaseMosqueToMosque);
-}
-
-// ──────────────────────────────────────────────
-// Helper Functions for Coordinate Resolution
-// ──────────────────────────────────────────────
-
-export function extractCoordsFromUrl(
-  url: string,
-): { latitude: number; longitude: number } | null {
-  try {
-    // Pattern 1: @lat,lng (standard Maps URLs)
-    const regex = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-    const match = url.match(regex);
-    if (match && match.length >= 3) {
-      return {
-        latitude: parseFloat(match[1]),
-        longitude: parseFloat(match[2]),
-      };
-    }
-
-    // Pattern 2: ?q=lat,lng or ?ll=lat,lng
-    const queryRegex = /[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
-    const queryMatch = url.match(queryRegex);
-    if (queryMatch && queryMatch.length >= 3) {
-      return {
-        latitude: parseFloat(queryMatch[1]),
-        longitude: parseFloat(queryMatch[2]),
-      };
-    }
-
-    // Pattern 3: !3dlat!4dlng (Google Maps place/data URLs)
-    const dataRegex = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
-    const dataMatch = url.match(dataRegex);
-    if (dataMatch && dataMatch.length >= 3) {
-      return {
-        latitude: parseFloat(dataMatch[1]),
-        longitude: parseFloat(dataMatch[2]),
-      };
-    }
-
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function resolveGoogleMapsLink(shortUrl: string): Promise<string> {
-  try {
-    // Use GET with redirect: "follow" (default) to resolve the full chain.
-    // Some servers don't respond to HEAD correctly for short URLs.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-    const response = await fetch(shortUrl, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    // response.url is the final URL after all redirects
-    if (response.url && response.url !== shortUrl) {
-      return response.url;
-    }
-
-    // Fallback: check for a meta-refresh or Location header in the body
-    const text = await response.text();
-    const metaMatch = text.match(/content=["']\d+;\s*url=([^"']+)["']/i);
-    if (metaMatch && metaMatch[1]) {
-      return metaMatch[1];
-    }
-
-    return response.url || shortUrl;
-  } catch (error) {
-    console.warn("Error resolving short URL:", error);
-    return shortUrl;
-  }
 }
 
 // ──────────────────────────────────────────────

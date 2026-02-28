@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Mosque } from "@/constants/mockData";
-import { supabase } from "@/lib/supabase";
 import {
-  SupabaseMosque,
-  mapSupabaseMosqueToMosque,
-} from "@/lib/types/mosque";
-import { calculateDistance, getPreferredLocation } from "@/lib/location";
+  calculateDistance,
+  extractCoordsFromUrl,
+  getPreferredLocation,
+  resolveGoogleMapsLink,
+} from "@/lib/location";
+import { supabase } from "@/lib/supabase";
+import { SupabaseMosque, mapSupabaseMosqueToMosque } from "@/lib/types/mosque";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type DistanceRange = "any" | "near" | "medium" | "far";
 type SortOption = "distance" | "name";
@@ -62,22 +64,56 @@ export function useMosquePagination({
     });
   }, []);
 
-  const addDistances = useCallback(
-    (items: Mosque[]): Mosque[] => {
-      const loc = userLocationRef.current;
-      if (!loc) return items;
-      return items.map((m) => ({
-        ...m,
-        distance: calculateDistance(
-          loc.latitude,
-          loc.longitude,
-          m.latitude,
-          m.longitude,
-        ),
-      }));
+  const resolveCoordinates = useCallback(
+    async (items: Mosque[]): Promise<Mosque[]> => {
+      const results = await Promise.all(
+        items.map(async (mosque) => {
+          if (
+            mosque.latitude === 0 &&
+            mosque.longitude === 0 &&
+            mosque.mapsUrl
+          ) {
+            try {
+              let finalUrl = mosque.mapsUrl;
+              if (
+                mosque.mapsUrl.includes("goo.gl") ||
+                mosque.mapsUrl.includes("app.goo.gl") ||
+                mosque.mapsUrl.includes("share.google")
+              ) {
+                finalUrl = await resolveGoogleMapsLink(mosque.mapsUrl);
+              }
+              const coords = extractCoordsFromUrl(finalUrl);
+              if (coords) {
+                return { ...mosque, ...coords };
+              }
+            } catch (err) {
+              console.warn(
+                `Failed to resolve coords for mosque ${mosque.name}`,
+                err,
+              );
+            }
+          }
+          return mosque;
+        }),
+      );
+      return results;
     },
     [],
   );
+
+  const addDistances = useCallback((items: Mosque[]): Mosque[] => {
+    const loc = userLocationRef.current;
+    if (!loc) return items;
+    return items.map((m) => ({
+      ...m,
+      distance: calculateDistance(
+        loc.latitude,
+        loc.longitude,
+        m.latitude,
+        m.longitude,
+      ),
+    }));
+  }, []);
 
   const buildQuery = useCallback(() => {
     let query = supabase.from("mosques").select("*", { count: "exact" });
@@ -141,6 +177,7 @@ export function useMosquePagination({
         }
 
         let mapped = (data as SupabaseMosque[]).map(mapSupabaseMosqueToMosque);
+        mapped = await resolveCoordinates(mapped);
         mapped = addDistances(mapped);
 
         if (useDistanceFilter) {
@@ -182,7 +219,7 @@ export function useMosquePagination({
         }
       }
     },
-    [buildQuery, selectedDistance, sortBy, addDistances],
+    [buildQuery, selectedDistance, sortBy, resolveCoordinates, addDistances],
   );
 
   // Reset and fetch page 0 when filters change

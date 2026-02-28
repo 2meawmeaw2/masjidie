@@ -197,7 +197,7 @@ export default function AdminEventsScreen() {
                 لا توجد فعاليات بعد
               </Text>
               <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
-                اضغط على "إضافة فعالية" لإنشاء واحدة
+                {"اضغط على \"إضافة فعالية\" لإنشاء واحدة"}
               </Text>
             </View>
           }

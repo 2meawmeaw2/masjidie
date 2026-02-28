@@ -7,7 +7,7 @@ import { useAuthStore } from "@/lib/stores/authStore";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-// Import Share and Linking
+import { useTranslation } from "react-i18next";
 import * as StoreReview from "expo-store-review";
 import {
   Linking,
@@ -32,6 +32,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuthStore();
+  const { t } = useTranslation();
   const { preferences: adhanPrefs } = useAdhanStore();
   const [savedCity, setSavedCity] = useState<string | null>(null);
 
@@ -84,13 +85,13 @@ export default function ProfileScreen() {
         entering={FadeInDown.duration(300).easing(Easing.inOut(Easing.ease))}
         style={styles.headerContainer}
       >
-        <Text style={[styles.header, { color: colors.tint }]}>الإعدادات</Text>
+        <Text style={[styles.header, { color: colors.tint }]}>{t("settings.title")}</Text>
       </Animated.View>
 
       {/* ─── عام (General) ─── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          عام
+          {t("settings.general")}
         </Text>
         <View
           style={[
@@ -100,22 +101,22 @@ export default function ProfileScreen() {
         >
           <AnimatedSettingRow
             icon="color-palette"
-            title="المظهر"
-            description="المظهر واللغة"
+            title={t("settings.appearance")}
+            description={t("settings.darkModeDesc")}
             index={0}
             onPress={() => router.push("/settings/appearance")}
           />
           <AnimatedSettingRow
             icon="notifications"
-            title="الأذان"
-            description={`${enabledCount}/5 صلوات مفعّلة`}
+            title={t("adhan.title")}
+            description={t("settings.adhanDesc", { count: enabledCount })}
             index={1}
             onPress={() => router.push("/settings/adhan")}
           />
           <AnimatedSettingRow
             icon="location"
-            title="الموقع"
-            description={savedCity ?? "غير محدد"}
+            title={t("settings.location")}
+            description={savedCity ?? t("settings.notSet")}
             index={2}
             isLast
             onPress={() => router.push("/settings/location")}
@@ -126,7 +127,7 @@ export default function ProfileScreen() {
       {/* ─── الدعم (Support) - NEW SECTION ─── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          التواصل
+          {t("settings.support")}
         </Text>
         <View
           style={[
@@ -136,15 +137,15 @@ export default function ProfileScreen() {
         >
           <AnimatedSettingRow
             icon="share-social-outline"
-            title="شارك التطبيق"
-            description="انشر الخير لأصدقائك"
+            title={t("settings.shareApp")}
+            description={t("settings.shareAppDesc")}
             index={3}
             onPress={onShare}
           />
           <AnimatedSettingRow
             icon="star-outline"
-            title="قيمنا على المتجر"
-            description="دعمك يساعدنا على الاستمرار"
+            title={t("settings.rateApp")}
+            description={t("settings.rateAppDesc")}
             index={4}
             isLast
             onPress={onRate}
@@ -155,7 +156,7 @@ export default function ProfileScreen() {
       {/* ─── الإدارة (Admin) ─── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          الإدارة
+          {t("settings.admin")}
         </Text>
         <View
           style={[
@@ -165,7 +166,7 @@ export default function ProfileScreen() {
         >
           <AnimatedSettingRow
             icon={session ? "shield-checkmark" : "shield-outline"}
-            title={session ? "لوحة الإدارة" : "تسجيل دخول المسؤول"}
+            title={session ? t("settings.adminDashboard") : t("settings.adminLogin")}
             index={5}
             isLast={!!session}
             onPress={() =>
@@ -175,7 +176,7 @@ export default function ProfileScreen() {
           {!session && (
             <AnimatedSettingRow
               icon="add-circle-outline"
-              title="سجّل مسجدك/مدرستك"
+              title={t("settings.registerMosque")}
               index={6}
               isLast
               onPress={() => router.push("/auth/register")}
@@ -189,7 +190,7 @@ export default function ProfileScreen() {
         entering={FadeIn.delay(350).duration(400)}
         style={[styles.versionText, { color: colors.textSecondary }]}
       >
-        {`الإصدار ${appVersion}`}
+        {t("settings.version", { version: appVersion })}
       </Animated.Text>
     </ScrollView>
   );

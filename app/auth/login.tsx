@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
@@ -19,6 +20,7 @@ export default function LoginScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
+  const { t } = useTranslation();
   const { signIn, isLoading, error, session } = useAuthStore();
 
   const [email, setEmail] = useState("");
@@ -50,10 +52,10 @@ export default function LoginScreen() {
             <Ionicons name="shield-checkmark" size={32} color="#fff" />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            Admin Login
+            {t("auth.adminLogin")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Mosque Manager Access
+            {t("auth.mosqueManagerAccess")}
           </Text>
         </View>
 
@@ -67,7 +69,7 @@ export default function LoginScreen() {
           {/* Email */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Email
+              {t("auth.email")}
             </Text>
             <View
               style={[
@@ -100,7 +102,7 @@ export default function LoginScreen() {
           {/* Password */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Password
+              {t("auth.password")}
             </Text>
             <View
               style={[
@@ -166,7 +168,7 @@ export default function LoginScreen() {
             ) : (
               <>
                 <Ionicons name="log-in-outline" size={20} color="#fff" />
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>{t("auth.signIn")}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -178,10 +180,10 @@ export default function LoginScreen() {
             activeOpacity={0.7}
           >
             <Text style={[styles.registerText, { color: colors.textSecondary }]}>
-              Don't have an account?{" "}
+              {t("auth.noAccount")}{" "}
             </Text>
             <Text style={[styles.registerText, { color: colors.primary }]}>
-              Register your mosque/school
+              {t("auth.registerMosqueSchool")}
             </Text>
           </TouchableOpacity>
         </View>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Pressable, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
@@ -175,7 +175,6 @@ function TabButton({
           styles.label,
           animatedTextStyle,
           {
-            font
             color,
             opacity: isFocused ? 1 : 0.7,
           },

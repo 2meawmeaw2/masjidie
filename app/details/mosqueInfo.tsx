@@ -45,7 +45,7 @@ export default function MosqueDetails() {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
         <Text style={{ color: theme.text, fontFamily: Fonts.mdsans }}>
-          المسجد غير موجود
+          {t("mosqueDetails.notFound")}
         </Text>
       </View>
     );
@@ -54,7 +54,6 @@ export default function MosqueDetails() {
     (activity) => String(activity.mosqueId) === String(id),
   );
   const eventsSlice = filteredEvents.slice(0, 3);
-  console.log(mosque.services);
   return (
     <>
       <Stack.Screen
@@ -95,12 +94,11 @@ export default function MosqueDetails() {
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             {/* 6. About Section */}
-            <Section title="نبذة عن المسجد" theme={theme}>
+            <Section title={t("mosqueDetails.about")} theme={theme}>
               <Text
                 style={[styles.description, { color: theme.tabIconDefault }]}
               >
-                {mosque.description ||
-                  "يعد هذا المسجد منارة للعلم والعبادة في المنطقة، حيث تقام فيه الصلوات الخمس والجمعة، بالإضافة إلى الدروس الدينية وحلقات تحفيظ القرآن الكريم."}
+                {mosque.description || t("mosqueDetails.defaultDescription")}
               </Text>
             </Section>
 
@@ -115,7 +113,7 @@ export default function MosqueDetails() {
                   { color: theme.primary, textDecorationLine: "underline" },
                 ]}
               >
-                {mosque.city}، {mosque.address} (اضغط للخريطة)
+                {mosque.city}، {mosque.address} ({t("mosqueDetails.openMap")})
               </Text>
             </TouchableOpacity>
 
@@ -153,17 +151,15 @@ export default function MosqueDetails() {
           <View style={styles.statsGrid}>
             <StatCard
               icon="people"
-              label="السعة"
-              value={`${mosque.capacity ?? "غير محدد"} مصلي`}
+              label={t("mosqueDetails.capacity")}
+              value={`${mosque.capacity ?? t("mosqueDetails.notSpecified")} ${t("mosqueDetails.worshippers")}`}
               theme={theme}
               isDark={isDark}
             />
             <StatCard
               icon="person"
-              label="الإمام"
-              value={
-                mosque.imam ?? "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
-              }
+              label={t("mosqueDetails.imam")}
+              value={mosque.imam ?? t("mosqueDetails.notSpecified")}
               theme={theme}
               isDark={isDark}
             />
@@ -171,7 +167,7 @@ export default function MosqueDetails() {
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
           {/* 4. Maraf9 (Facilities) */}
-          <Section title="المرافق " theme={theme}>
+          <Section title={t("mosqueDetails.facilities")} theme={theme}>
             <View style={styles.facilitiesContainer}>
               {mosque.services?.map((item, index) => (
                 <View
@@ -199,12 +195,12 @@ export default function MosqueDetails() {
           </Section>
 
           {/* 5. Upcoming Events (Restored) */}
-          <Section title="الأحداث القادمة" theme={theme}>
+          <Section title={t("mosqueDetails.upcomingEvents")} theme={theme}>
             {filteredEvents.length === 0 ? (
               <Text
                 style={{ color: theme.textSecondary, fontFamily: Fonts.rsans }}
               >
-                لا توجد أحداث قادمة حالياً.
+                {t("mosqueDetails.noUpcomingEvents")}
               </Text>
             ) : (
               eventsSlice.map((activity, index) => (
@@ -253,59 +249,6 @@ const StatCard = ({ icon, label, value, theme, isDark }: any) => (
       </Text>
     </View>
   </View>
-);
-
-const EventItem = ({ title, date, time, theme, isDark }: any) => (
-  <View
-    style={[
-      styles.eventCard,
-      { backgroundColor: theme.card, borderColor: theme.border },
-    ]}
-  >
-    <View
-      style={[
-        styles.dateBox,
-        { backgroundColor: isDark ? theme.card : theme.primary + "18" },
-      ]}
-    >
-      <Text style={[styles.dateText, { color: theme.primary }]}>
-        {date.split("،")[1]?.trim() || date}
-      </Text>
-    </View>
-    <View style={styles.eventContent}>
-      <Text style={[styles.eventTitle, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.eventTime, { color: theme.textSecondary }]}>
-        {time}
-      </Text>
-    </View>
-  </View>
-);
-
-const ActionButton = ({
-  icon,
-  label,
-  onPress,
-  theme,
-  primary = false,
-}: any) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={[
-      styles.actionBtn,
-      {
-        backgroundColor: primary ? theme.primary : theme.card,
-        borderColor: theme.border,
-        borderWidth: primary ? 0 : 1,
-      },
-    ]}
-  >
-    <Ionicons name={icon} size={20} color={primary ? "#fff" : theme.text} />
-    <Text
-      style={[styles.actionLabel, { color: primary ? "#fff" : theme.text }]}
-    >
-      {label}
-    </Text>
-  </TouchableOpacity>
 );
 
 const Section = ({ title, children, theme }: any) => (
@@ -419,24 +362,6 @@ const styles = StyleSheet.create({
     width: "100%",
     marginVertical: Spacing.md,
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
-  },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontFamily: Fonts.mdsans,
-  },
   // Section Shared
   section: {
     marginBottom: Spacing.xl,
@@ -465,69 +390,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.mdsans,
   },
-  // Events
-  eventCard: {
-    flexDirection: "row",
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    marginBottom: Spacing.sm,
-    alignItems: "center",
-    direction: "rtl",
-  },
-  dateBox: {
-    width: 50,
-    height: 50,
-    borderRadius: BorderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: Spacing.md,
-  },
-  dateText: {
-    fontSize: 12,
-    fontFamily: Fonts.bdsans,
-    textAlign: "center",
-  },
-  eventContent: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  eventTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bdsans,
-    marginBottom: 4,
-    textAlign: "left",
-  },
-  eventTime: {
-    fontSize: 12,
-    fontFamily: Fonts.rsans,
-    textAlign: "left",
-  },
   description: {
     fontSize: 14,
     fontFamily: Fonts.rsans,
     lineHeight: 24,
     textAlign: "left",
-  },
-  // Footer
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.md,
-    borderTopWidth: 1,
-    paddingBottom: Spacing.md + 20,
-  },
-  donateButton: {
-    width: "100%",
-    padding: 16,
-    borderRadius: BorderRadius.lg,
-    alignItems: "center",
-  },
-  donateButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: Fonts.bdsans,
   },
 });

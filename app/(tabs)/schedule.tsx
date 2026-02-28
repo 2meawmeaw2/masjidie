@@ -143,10 +143,10 @@ export default function ScheduleScreen() {
         />
       </View>
       <Text style={[styles.emptyTitle, { color: theme.text }]}>
-        لا توجد أحداث محفوظة
+        {t("schedule.noSavedEvents")}
       </Text>
       <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
-        احفظ الأنشطة والدروس من صفحة الاستكشاف{"\n"}لتظهر هنا في جدولك اليومي
+        {t("schedule.noSavedEventsHint")}
       </Text>
     </View>
   );
@@ -291,7 +291,7 @@ export default function ScheduleScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <Text style={[styles.headerTitle, { color: theme.tint }]}>جدولي</Text>
+          <Text style={[styles.headerTitle, { color: theme.tint }]}>{t("schedule.mySchedule")}</Text>
           <Text style={[styles.headerDate, { color: theme.tint + "70" }]}>
             {todayLabel}
           </Text>

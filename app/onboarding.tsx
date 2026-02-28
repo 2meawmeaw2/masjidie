@@ -77,7 +77,6 @@ export default function OnboardingScreen() {
   const handleLayout = (event: any) => {
     const { height } = event.nativeEvent.layout;
     setViewHeight(height);
-    console.log("Height is:", height);
     setReady(true);
   };
 

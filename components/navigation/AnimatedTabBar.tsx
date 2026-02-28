@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
   LayoutChangeEvent,
@@ -14,8 +13,6 @@ import Animated, {
   withSpring,
   withTiming,
   useSharedValue,
-  interpolate,
-  useDerivedValue,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import {
@@ -23,7 +20,6 @@ import {
   Spacing,
   BorderRadius,
   Fonts,
-  Shadows,
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 

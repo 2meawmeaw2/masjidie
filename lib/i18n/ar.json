@@ -11,7 +11,8 @@
     "greeting": "السلام عليكم",
     "featured": "نشاطات مميزة",
     "nearby": "مساجد قريبة",
-    "categories": "التصنيفات"
+    "categories": "التصنيفات",
+    "quranSchools": "المدارس القرآنية"
   },
   "search": {
     "placeholder": "ابحث عن مسجد، نشاط..."
@@ -56,6 +57,7 @@
   },
   "settings": {
     "title": "الإعدادات",
+    "general": "عام",
     "appearance": "المظهر",
     "darkMode": "الوضع الداكن",
     "darkModeDesc": "تفعيل المظهر الداكن",
@@ -82,7 +84,12 @@
     "admin": "الإدارة",
     "adminDashboard": "لوحة الإدارة",
     "adminLogin": "تسجيل دخول المسؤول",
-    "registerMosque": "سجّل مسجدك/مدرستك"
+    "registerMosque": "سجّل مسجدك/مدرستك",
+    "support": "التواصل",
+    "shareApp": "شارك التطبيق",
+    "shareAppDesc": "انشر الخير لأصدقائك",
+    "rateApp": "قيمنا على المتجر",
+    "rateAppDesc": "دعمك يساعدنا على الاستمرار"
   },
   "moderation": {
     "pendingRequests": "الطلبات المعلقة",
@@ -124,6 +131,33 @@
   "onboarding": {
     "subtitle": "اكتشف المساجد والأنشطة ومواقيت الصلاة في مجتمعك",
     "get_started": "ابدأ الآن"
+  },
+  "schedule": {
+    "mySchedule": "جدولي",
+    "noSavedEvents": "لا توجد أحداث محفوظة",
+    "noSavedEventsHint": "احفظ الأنشطة والدروس من صفحة الاستكشاف\nلتظهر هنا في جدولك اليومي"
+  },
+  "mosqueDetails": {
+    "notFound": "المسجد غير موجود",
+    "about": "نبذة عن المسجد",
+    "defaultDescription": "يعد هذا المسجد منارة للعلم والعبادة في المنطقة، حيث تقام فيه الصلوات الخمس والجمعة، بالإضافة إلى الدروس الدينية وحلقات تحفيظ القرآن الكريم.",
+    "openMap": "اضغط للخريطة",
+    "capacity": "السعة",
+    "imam": "الإمام",
+    "notSpecified": "غير محدد",
+    "worshippers": "مصلي",
+    "facilities": "المرافق",
+    "upcomingEvents": "الأحداث القادمة",
+    "noUpcomingEvents": "لا توجد أحداث قادمة حالياً."
+  },
+  "auth": {
+    "adminLogin": "تسجيل دخول المسؤول",
+    "mosqueManagerAccess": "الوصول لإدارة المسجد",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "signIn": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟",
+    "registerMosqueSchool": "سجّل مسجدك/مدرستك"
   },
   "bookmarks": {
     "saved_mosques": "المساجد المحفوظة",

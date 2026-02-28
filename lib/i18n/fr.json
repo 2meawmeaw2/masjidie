@@ -11,7 +11,8 @@
     "greeting": "As-salam alaykoum",
     "featured": "Activités en vedette",
     "nearby": "Mosquées à proximité",
-    "categories": "Catégories"
+    "categories": "Catégories",
+    "quranSchools": "Écoles coraniques"
   },
   "search": {
     "placeholder": "Rechercher une mosquée..."
@@ -82,7 +83,13 @@
     "admin": "Admin",
     "adminDashboard": "Tableau de bord admin",
     "adminLogin": "Connexion admin",
-    "registerMosque": "Enregistrer votre mosquée/école"
+    "registerMosque": "Enregistrer votre mosquée/école",
+    "general": "Général",
+    "support": "Support",
+    "shareApp": "Partager l'application",
+    "shareAppDesc": "Partagez l'application avec vos amis",
+    "rateApp": "Évaluez-nous",
+    "rateAppDesc": "Votre soutien nous aide à grandir"
   },
   "moderation": {
     "pendingRequests": "Demandes en attente",
@@ -124,6 +131,33 @@
   "onboarding": {
     "subtitle": "Découvrez les mosquées, activités et horaires de prière dans votre communauté",
     "get_started": "Commencer"
+  },
+  "schedule": {
+    "mySchedule": "Mon calendrier",
+    "noSavedEvents": "Aucun événement sauvegardé",
+    "noSavedEventsHint": "Sauvegardez des activités depuis Explorer\npour les voir ici dans votre calendrier quotidien"
+  },
+  "mosqueDetails": {
+    "notFound": "Mosquée introuvable",
+    "about": "À propos de la mosquée",
+    "defaultDescription": "Cette mosquée est un phare de connaissance et de culte dans la région, où les cinq prières quotidiennes et la prière du vendredi sont célébrées, en plus des cours religieux et des cercles de mémorisation du Coran.",
+    "openMap": "Ouvrir la carte",
+    "capacity": "Capacité",
+    "imam": "Imam",
+    "notSpecified": "Non spécifié",
+    "worshippers": "fidèles",
+    "facilities": "Installations",
+    "upcomingEvents": "Événements à venir",
+    "noUpcomingEvents": "Aucun événement à venir pour le moment."
+  },
+  "auth": {
+    "adminLogin": "Connexion admin",
+    "mosqueManagerAccess": "Accès gestionnaire de mosquée",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "registerMosqueSchool": "Enregistrer votre mosquée/école"
   },
   "bookmarks": {
     "saved_mosques": "Mosquees sauvegardees",

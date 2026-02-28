@@ -1,6 +1,6 @@
+import * as Location from "expo-location";
 import { Linking, Platform } from "react-native";
 import { Mosque } from "../constants/mockData";
-import * as Location from "expo-location";
 import { getSavedLocation } from "./storage";
 
 export interface GeoCoordinate {
@@ -92,6 +92,79 @@ export async function getPreferredLocation(): Promise<{
   } catch (error) {
     console.error("Error getting preferred location:", error);
     return null;
+  }
+}
+
+// ──────────────────────────────────────────────
+// Google Maps URL coordinate extraction
+// ──────────────────────────────────────────────
+
+export function extractCoordsFromUrl(
+  url: string,
+): { latitude: number; longitude: number } | null {
+  try {
+    // Pattern 1: @lat,lng (standard Maps URLs)
+    const regex = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+    const match = url.match(regex);
+    if (match && match.length >= 3) {
+      return {
+        latitude: parseFloat(match[1]),
+        longitude: parseFloat(match[2]),
+      };
+    }
+
+    // Pattern 2: ?q=lat,lng or ?ll=lat,lng
+    const queryRegex = /[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+    const queryMatch = url.match(queryRegex);
+    if (queryMatch && queryMatch.length >= 3) {
+      return {
+        latitude: parseFloat(queryMatch[1]),
+        longitude: parseFloat(queryMatch[2]),
+      };
+    }
+
+    // Pattern 3: !3dlat!4dlng (Google Maps place/data URLs)
+    const dataRegex = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
+    const dataMatch = url.match(dataRegex);
+    if (dataMatch && dataMatch.length >= 3) {
+      return {
+        latitude: parseFloat(dataMatch[1]),
+        longitude: parseFloat(dataMatch[2]),
+      };
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function resolveGoogleMapsLink(shortUrl: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(shortUrl, {
+      method: "GET",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (response.url && response.url !== shortUrl) {
+      return response.url;
+    }
+
+    const text = await response.text();
+    const metaMatch = text.match(/content=["']\d+;\s*url=([^"']+)["']/i);
+    if (metaMatch && metaMatch[1]) {
+      return metaMatch[1];
+    }
+
+    return response.url || shortUrl;
+  } catch (error) {
+    console.warn("Error resolving short URL:", error);
+    return shortUrl;
   }
 }
 

@@ -208,7 +208,6 @@ async function scheduleNotifications(
     }
   }
 
-  console.log("[AdhanStore] Notifications scheduled");
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────────

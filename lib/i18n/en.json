@@ -11,7 +11,8 @@
     "greeting": "As-salam alaykoum",
     "featured": "Featured Activities",
     "nearby": "Nearby Mosques",
-    "categories": "Categories"
+    "categories": "Categories",
+    "quranSchools": "Quran Schools"
   },
   "search": {
     "placeholder": "Search for a mosque, activity..."
@@ -82,7 +83,13 @@
     "admin": "Admin",
     "adminDashboard": "Admin Dashboard",
     "adminLogin": "Admin Login",
-    "registerMosque": "Register Your Mosque/School"
+    "registerMosque": "Register Your Mosque/School",
+    "general": "General",
+    "support": "Support",
+    "shareApp": "Share App",
+    "shareAppDesc": "Share the app with friends",
+    "rateApp": "Rate Us",
+    "rateAppDesc": "Your support helps us grow"
   },
   "moderation": {
     "pendingRequests": "Pending Requests",
@@ -124,6 +131,33 @@
   "onboarding": {
     "subtitle": "Discover mosques, activities, and prayer times in your community",
     "get_started": "Get Started"
+  },
+  "schedule": {
+    "mySchedule": "My Schedule",
+    "noSavedEvents": "No saved events",
+    "noSavedEventsHint": "Save activities and lessons from Explore\nto see them here in your daily schedule"
+  },
+  "mosqueDetails": {
+    "notFound": "Mosque not found",
+    "about": "About the Mosque",
+    "defaultDescription": "This mosque is a beacon of knowledge and worship in the area, where the five daily prayers and Friday prayer are held, in addition to religious lessons and Quran memorization circles.",
+    "openMap": "Open Map",
+    "capacity": "Capacity",
+    "imam": "Imam",
+    "notSpecified": "Not specified",
+    "worshippers": "worshippers",
+    "facilities": "Facilities",
+    "upcomingEvents": "Upcoming Events",
+    "noUpcomingEvents": "No upcoming events at the moment."
+  },
+  "auth": {
+    "adminLogin": "Admin Login",
+    "mosqueManagerAccess": "Mosque Manager Access",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "noAccount": "Don't have an account?",
+    "registerMosqueSchool": "Register your mosque/school"
   },
   "bookmarks": {
     "saved_mosques": "Saved Mosques",
