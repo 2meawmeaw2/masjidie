@@ -1,6 +1,7 @@
 import { ActivityCard } from "@/components/ActivityCard";
 import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
 import { MosqueCard } from "@/components/MosqueCard";
+import { AmbientBackground } from "@/components/ui/ambientBG";
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDistanceKm, getPreferredLocation } from "@/lib/location";
@@ -156,7 +157,7 @@ export default function ExploreScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
       edges={["top"]}
     >
-      {/*<AmbientBackground />*/}
+      <AmbientBackground />
 
       {/* Header */}
       <View style={styles.header}>

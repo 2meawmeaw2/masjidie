@@ -10,6 +10,7 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { PRAYER_LABELS, PrayerId } from "@/lib/types/schedule";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
@@ -51,11 +52,27 @@ export function ActivityCard({
     ];
     return days[dayIndex];
   };
+  const getEventTime = () => {
+    console.log(index, activity.timeAnchor);
+
+    if (activity.prayerId) {
+      const label = PRAYER_LABELS[activity.prayerId as PrayerId];
+      if (label) {
+        if (!activity.prayerOffset || activity.prayerOffset === 0) return label;
+        const abs = Math.abs(activity.prayerOffset);
+        const dir = activity.prayerOffset > 0 ? "بعد" : "قبل";
+        return `${dir} ${label} بـ ${abs} د`;
+      }
+    }
+    return activity.startTime;
+  };
+
+  const resolvedTime = getEventTime();
 
   const timeString =
     activity.type === "recurring"
-      ? `${getDayName(activity.dayOfWeek)} • ${activity.startTime}`
-      : `${activity.date} • ${activity.startTime}`;
+      ? `${getDayName(activity.dayOfWeek)} • ${resolvedTime}`
+      : `${activity.date} • ${resolvedTime}`;
 
   return (
     <TouchableOpacity
