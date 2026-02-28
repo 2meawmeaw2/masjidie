@@ -106,12 +106,7 @@ export function useMosquePagination({
     if (!loc) return items;
     return items.map((m) => ({
       ...m,
-      distance: calculateDistance(
-        loc.latitude,
-        loc.longitude,
-        m.latitude,
-        m.longitude,
-      ),
+      distance: calculateDistance(m.mapsUrl, loc.latitude, loc.longitude),
     }));
   }, []);
 

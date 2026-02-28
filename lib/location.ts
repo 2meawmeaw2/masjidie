@@ -16,20 +16,38 @@ function toRad(value: number): number {
 }
 
 /**
- * Calculates the distance between two coordinates using the Haversine formula
- * @param lat1 Latitude of first point
- * @param lon1 Longitude of first point
- * @param lat2 Latitude of second point
- * @param lon2 Longitude of second point
- * @returns Distance in kilometers
+ * Calculates straight-line distance between user and a mosque using the
+ * Haversine formula. Extracts the mosque coordinates from its Google Maps URL.
+ * @returns Distance in km (number), or 0 if coordinates can't be determined
  */
 export function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
+  googleMapsUrl: string,
+  userlat: string | number | undefined,
+  userlon: string | number | undefined,
 ): number {
-  const R = 6371; // Radius of the earth in km
+  if (!userlat || !userlon || !googleMapsUrl) return 0;
+
+  const lat1 = typeof userlat === "string" ? parseFloat(userlat) : userlat;
+  const lon1 = typeof userlon === "string" ? parseFloat(userlon) : userlon;
+
+  // Extract destination coords from the Google Maps URL
+  const decodedUrl = decodeURIComponent(googleMapsUrl);
+  const regexAt = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+  const regexQuery = /query=(-?\d+\.\d+),(-?\d+\.\d+)/;
+  const regexData = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/;
+
+  const match =
+    decodedUrl.match(regexAt) ||
+    decodedUrl.match(regexQuery) ||
+    decodedUrl.match(regexData);
+
+  if (!match) return 0;
+
+  const lat2 = parseFloat(match[1]);
+  const lon2 = parseFloat(match[2]);
+
+  // Haversine formula
+  const R = 6371; // Earth radius in km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -39,10 +57,8 @@ export function calculateDistance(
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c; // Distance in km
-  return Number(d.toFixed(1)); // Return to 1 decimal place
+  return Number((R * c).toFixed(1));
 }
-
 /**
  * Requests permissions and gets current user location
  */

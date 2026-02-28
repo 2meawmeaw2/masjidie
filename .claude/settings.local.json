@@ -17,7 +17,8 @@
       "Bash(tail:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:docs.graphhopper.com)"
     ]
   }
 }

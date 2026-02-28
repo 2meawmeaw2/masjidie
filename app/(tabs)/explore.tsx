@@ -8,7 +8,6 @@ import { calculateDistance, getPreferredLocation } from "@/lib/location";
 import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -35,10 +34,7 @@ export default function ExploreScreen() {
     isLoading: schoolsLoading,
     fetchSchools,
   } = useIslamicSchoolsStore();
-  const {
-    mosques,
-    fetchMosques,
-  } = useMosquesStore();
+  const { mosques, fetchMosques } = useMosquesStore();
 
   const [mosquesWithDistance, setMosquesWithDistance] = React.useState(mosques);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -62,15 +58,14 @@ export default function ExploreScreen() {
     (async () => {
       const location = await getPreferredLocation();
       if (location && mosques.length > 0) {
-        const updatedMosques = mosques.map((mosque) => {
-          const dist = calculateDistance(
+        const updatedMosques = mosques.map((mosque) => ({
+          ...mosque,
+          distance: calculateDistance(
+            mosque.mapsUrl,
             location.latitude,
             location.longitude,
-            mosque.latitude,
-            mosque.longitude,
-          );
-          return { ...mosque, distance: dist };
-        });
+          ),
+        }));
         setMosquesWithDistance(updatedMosques);
       } else if (mosques.length > 0) {
         setMosquesWithDistance(mosques);
