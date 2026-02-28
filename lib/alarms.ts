@@ -5,6 +5,7 @@ import { useAdhanStore } from "@/lib/stores/adhanStore";
 // ─── Constants ───────────────────────────────────────────────────────────────
 const ALARM_CHANNEL_ID = "adhan_alarm";
 const FAJR_CHANNEL_ID = "adhan_alarm_fajr";
+const EVENT_CHANNEL_ID = "event_reminder";
 const ADHAN_SOUND_FILE = "adahnsounda.mp3";
 const FAJR_SOUND_FILE = "adahnsoundfajr.mp3";
 
@@ -38,6 +39,13 @@ export async function setupAlarmChannels(): Promise<void> {
         usage: Notifications.AndroidAudioUsage.ALARM,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
       },
+    }),
+    Notifications.setNotificationChannelAsync(EVENT_CHANNEL_ID, {
+      name: "Event Reminders",
+      description: "Reminders for saved events and activities",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     }),
   ]);
 }

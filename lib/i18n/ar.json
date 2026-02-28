@@ -132,6 +132,13 @@
     "subtitle": "اكتشف المساجد والأنشطة ومواقيت الصلاة في مجتمعك",
     "get_started": "ابدأ الآن"
   },
+  "locationPermission": {
+    "title": "تفعيل الموقع",
+    "description": "اسمح بالوصول إلى موقعك لحساب مواقيت الصلاة بدقة والعثور على المساجد القريبة",
+    "enable": "تفعيل الموقع",
+    "skip": "تخطي",
+    "loading": "جاري تحديد موقعك..."
+  },
   "schedule": {
     "mySchedule": "جدولي",
     "noSavedEvents": "لا توجد أحداث محفوظة",
@@ -187,5 +194,9 @@
     "ummAlQura": "أم القرى",
     "northAmerica": "أمريكا الشمالية (ISNA)",
     "karachi": "كراتشي"
+  },
+  "notifications": {
+    "eventReminderTitle": "تذكير بالنشاط",
+    "eventReminderBody": "حان موعد: {{title}}"
   }
 }

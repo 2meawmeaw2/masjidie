@@ -1,17 +1,15 @@
-import { create } from "zustand";
+import i18n from "@/lib/i18n";
+import { getSavedLocation } from "@/lib/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
 import {
-  PrayerTimes,
   CalculationMethod,
   CalculationParameters,
   Coordinates,
-  Prayer,
   Madhab,
+  PrayerTimes,
 } from "adhan";
-import i18n from "@/lib/i18n";
-import { getSavedLocation } from "@/lib/storage";
+import * as Notifications from "expo-notifications";
+import { create } from "zustand";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -168,13 +166,31 @@ function getPrayerTranslationKey(prayer: PrayerName): string {
   return `adhan.${prayer}`;
 }
 
+const ADHAN_ID_PREFIX = "adhan-";
+
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** Cancel only adhan-prefixed notifications, leaving event notifications untouched */
+async function cancelAdhanNotifications(): Promise<void> {
+  const all = await Notifications.getAllScheduledNotificationsAsync();
+  const adhanIds = all
+    .filter((n) => n.identifier.startsWith(ADHAN_ID_PREFIX))
+    .map((n) => n.identifier);
+
+  await Promise.all(
+    adhanIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)),
+  );
+}
+
 async function scheduleNotifications(
   todayTimes: PrayerTimeEntry[],
   tomorrowTimes: PrayerTimeEntry[],
   enabledPrayers: Record<PrayerName, boolean>,
 ): Promise<void> {
-  // Cancel all existing
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  // Cancel only adhan notifications (not event reminders)
+  await cancelAdhanNotifications();
 
   const now = new Date();
   const allTimes = [...todayTimes, ...tomorrowTimes];
@@ -185,9 +201,11 @@ async function scheduleNotifications(
 
     const isFajr = entry.name === "fajr";
     const prayerLabel = i18n.t(getPrayerTranslationKey(entry.name));
+    const identifier = `${ADHAN_ID_PREFIX}${entry.name}-${formatDateKey(entry.time)}`;
 
     try {
       await Notifications.scheduleNotificationAsync({
+        identifier,
         content: {
           title: "🕌 " + prayerLabel,
           body: i18n.t("adhan.notificationBody", { prayer: prayerLabel }),
@@ -207,7 +225,6 @@ async function scheduleNotifications(
       );
     }
   }
-
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────────
@@ -226,12 +243,26 @@ export const useAdhanStore = create<AdhanState>((set, get) => ({
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayTimes = calculateTimesForDate(today, lat, lon, prefs.calculationMethod);
-    const tomorrowTimes = calculateTimesForDate(tomorrow, lat, lon, prefs.calculationMethod);
+    const todayTimes = calculateTimesForDate(
+      today,
+      lat,
+      lon,
+      prefs.calculationMethod,
+    );
+    const tomorrowTimes = calculateTimesForDate(
+      tomorrow,
+      lat,
+      lon,
+      prefs.calculationMethod,
+    );
 
     set({ todayTimes, tomorrowTimes, preferences: prefs, initialized: true });
 
-    await scheduleNotifications(todayTimes, tomorrowTimes, prefs.enabledPrayers);
+    await scheduleNotifications(
+      todayTimes,
+      tomorrowTimes,
+      prefs.enabledPrayers,
+    );
   },
 
   recalculateAndSchedule: async () => {
@@ -242,12 +273,26 @@ export const useAdhanStore = create<AdhanState>((set, get) => ({
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayTimes = calculateTimesForDate(today, lat, lon, preferences.calculationMethod);
-    const tomorrowTimes = calculateTimesForDate(tomorrow, lat, lon, preferences.calculationMethod);
+    const todayTimes = calculateTimesForDate(
+      today,
+      lat,
+      lon,
+      preferences.calculationMethod,
+    );
+    const tomorrowTimes = calculateTimesForDate(
+      tomorrow,
+      lat,
+      lon,
+      preferences.calculationMethod,
+    );
 
     set({ todayTimes, tomorrowTimes });
 
-    await scheduleNotifications(todayTimes, tomorrowTimes, preferences.enabledPrayers);
+    await scheduleNotifications(
+      todayTimes,
+      tomorrowTimes,
+      preferences.enabledPrayers,
+    );
   },
 
   togglePrayer: async (prayer: PrayerName) => {
@@ -262,12 +307,19 @@ export const useAdhanStore = create<AdhanState>((set, get) => ({
 
     set({ preferences: updated });
     await savePreferences(updated);
-    await scheduleNotifications(todayTimes, tomorrowTimes, updated.enabledPrayers);
+    await scheduleNotifications(
+      todayTimes,
+      tomorrowTimes,
+      updated.enabledPrayers,
+    );
   },
 
   setCalculationMethod: async (method: MethodKey) => {
     const { preferences } = get();
-    const updated: AdhanPreferences = { ...preferences, calculationMethod: method };
+    const updated: AdhanPreferences = {
+      ...preferences,
+      calculationMethod: method,
+    };
 
     set({ preferences: updated });
     await savePreferences(updated);
@@ -282,6 +334,10 @@ export const useAdhanStore = create<AdhanState>((set, get) => ({
     const tomorrowTimes = calculateTimesForDate(tomorrow, lat, lon, method);
 
     set({ todayTimes, tomorrowTimes });
-    await scheduleNotifications(todayTimes, tomorrowTimes, updated.enabledPrayers);
+    await scheduleNotifications(
+      todayTimes,
+      tomorrowTimes,
+      updated.enabledPrayers,
+    );
   },
 }));

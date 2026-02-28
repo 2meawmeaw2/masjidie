@@ -1,31 +1,25 @@
-import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  Platform,
-  ScrollView,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  Colors,
-  Spacing,
-  BorderRadius,
-  Fonts,
-  Shadows,
-} from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useScheduleStore } from "@/lib/stores/scheduleStore";
-import {
-  PrayerId,
-  PRAYER_IDS,
-  PRAYER_LABELS,
-  ScheduledEvent,
-} from "@/lib/types/schedule";
+import { CATEGORIES } from "@/constants/categories";
 import { Activity } from "@/constants/mockData";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
+import { useScheduleStore } from "@/lib/stores/scheduleStore";
+import { ScheduledEvent } from "@/lib/types/schedule";
+import { Ionicons } from "@expo/vector-icons";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface AddToScheduleSheetProps {
   visible: boolean;
@@ -33,13 +27,34 @@ interface AddToScheduleSheetProps {
   onClose: () => void;
 }
 
-type AnchorMode = "fixed" | "prayer";
+// Offset options in minutes (negative = before, 0 = at event time, positive = after)
+const OFFSET_OPTIONS = [-60, -30, -15, -10, -5, 0, 5, 10, 15, 30];
 
-// ── Simple time-picker wheel ──────────────────
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = ["00", "15", "30", "45"];
+function offsetLabel(offset: number): string {
+  if (offset === 0) return "في وقت الحدث";
+  const abs = Math.abs(offset);
+  const unit = abs >= 60 ? `${abs / 60} ساعة` : `${abs} د`;
+  return offset < 0 ? `قبل ${unit}` : `بعد ${unit}`;
+}
 
-const OFFSET_OPTIONS = [-60, -30, -15, 0, 15, 30, 60];
+/** Parse "HH:mm" and apply an offset in minutes, returning "HH:mm" */
+function applyOffset(time: string, offsetMinutes: number): string {
+  if (!time) return "";
+  const parts = time.split(":");
+  if (parts.length < 2) return time;
+
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+
+  if (isNaN(h) || isNaN(m)) return time;
+
+  let total = h * 60 + m + offsetMinutes;
+  if (total < 0) total += 24 * 60;
+  total = total % (24 * 60);
+  const rh = Math.floor(total / 60);
+  const rm = total % 60;
+  return `${String(rh).padStart(2, "0")}:${String(rm).padStart(2, "0")}`;
+}
 
 export function AddToScheduleSheet({
   visible,
@@ -50,389 +65,215 @@ export function AddToScheduleSheet({
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const addEvent = useScheduleStore((s) => s.addEvent);
+  const mosques = useMosquesStore((s) => s.mosques);
+  const { t } = useTranslation();
 
-  // ── Local state ──────────────────────────────
-  const [anchorMode, setAnchorMode] = useState<AnchorMode>("fixed");
-  const [selectedHour, setSelectedHour] = useState("12");
-  const [selectedMinute, setSelectedMinute] = useState("00");
-  const [selectedPrayer, setSelectedPrayer] = useState<PrayerId>("dhuhr");
+  const bottomSheetRef = useRef<BottomSheet>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
 
+  // Cache activity to prevent layout jumping when the sheet is animating closed
+  // and the parent simultaneously sets activity to null.
+  const [cachedActivity, setCachedActivity] = useState<Activity | null>(
+    activity,
+  );
+
+  useEffect(() => {
+    if (activity) {
+      setCachedActivity(activity);
+      setSelectedOffset(0); // Optional: Reset offset whenever a new activity is opened
+    }
+  }, [activity]);
+
+  // Sync parent's "visible" state to the bottom sheet's imperative methods
+  useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.expand();
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
+
   const handleSave = useCallback(() => {
-    if (!activity) return;
+    const targetActivity = activity || cachedActivity;
+    if (!targetActivity) return;
 
-    const base = {
-      id: `sch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      eventId: activity.id,
-      title: activity.title,
-      categoryId: activity.categoryId,
-      createdAt: new Date().toISOString(),
-    };
+    const mosque = targetActivity.mosqueId
+      ? mosques.find((m) => m.id === targetActivity.mosqueId)
+      : undefined;
 
-    const event: ScheduledEvent =
-      anchorMode === "fixed"
-        ? {
-            ...base,
-            anchor: "fixed",
-            time: `${selectedHour}:${selectedMinute}`,
-          }
-        : {
-            ...base,
-            anchor: "prayer",
-            prayerId: selectedPrayer,
-            offsetMinutes: selectedOffset,
-          };
+    const categoryLabel = CATEGORIES[targetActivity.categoryId]?.label;
+    const translatedCategory = categoryLabel ? t(categoryLabel) : undefined;
+
+    let event: ScheduledEvent;
+
+    if (targetActivity.timeAnchor === "prayer" && targetActivity.prayerId) {
+      event = {
+        id: `sch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        eventId: targetActivity.id,
+        title: targetActivity.title,
+        categoryId: targetActivity.categoryId,
+        categoryName: translatedCategory,
+        mosqueName: mosque ? mosque.name : targetActivity.mosqueName,
+        mapsUrl: mosque ? mosque.mapsUrl : undefined,
+        createdAt: new Date().toISOString(),
+        anchor: "prayer",
+        prayerId: targetActivity.prayerId as any,
+        offsetMinutes: selectedOffset,
+      };
+    } else {
+      const resolvedTime = applyOffset(
+        targetActivity.startTime,
+        selectedOffset,
+      );
+      console.log(targetActivity, "mewa");
+      console.log("resolvedTime", resolvedTime);
+      event = {
+        id: `sch_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        eventId: targetActivity.id,
+        title: targetActivity.title,
+        categoryId: targetActivity.categoryId,
+        categoryName: translatedCategory,
+        mosqueName: mosque ? mosque.name : targetActivity.mosqueName,
+        mapsUrl: mosque ? mosque.mapsUrl : undefined,
+        createdAt: new Date().toISOString(),
+        anchor: "fixed",
+        time: resolvedTime || targetActivity.startTime, // always store them as string
+      };
+    }
 
     addEvent(event);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onClose();
-  }, [
-    activity,
-    anchorMode,
-    selectedHour,
-    selectedMinute,
-    selectedPrayer,
-    selectedOffset,
-    addEvent,
-    onClose,
-  ]);
+  }, [activity, cachedActivity, selectedOffset, addEvent, onClose]);
 
-  if (!activity) return null;
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        pressBehavior="close"
+      />
+    ),
+    [],
+  );
 
-  const offsetLabel = (offset: number) => {
-    if (offset === 0) return "عند الأذان";
-    const abs = Math.abs(offset);
-    return offset > 0 ? `بعد ${abs} د` : `قبل ${abs} د`;
-  };
+  const displayActivity = activity || cachedActivity;
 
+  // Render a hidden, empty sheet if nothing is loaded to prevent hook/render issues
+  if (!displayActivity) {
+    return (
+      <BottomSheet ref={bottomSheetRef} index={-1}>
+        <BottomSheetView>
+          <View />
+        </BottomSheetView>
+      </BottomSheet>
+    );
+  }
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
+    <BottomSheet
+      ref={bottomSheetRef}
+      index={-1}
+      enablePanDownToClose
+      enableDynamicSizing
+      onClose={onClose}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{ backgroundColor: theme.card }}
+      handleIndicatorStyle={{ backgroundColor: theme.border }}
     >
-      <View style={styles.overlay}>
+      <BottomSheetView
+        style={{ paddingBottom: Platform.OS === "ios" ? 34 : 20 }}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} hitSlop={12}>
+            <Ionicons name="close" size={24} color={theme.textSecondary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            إضافة للجدول
+          </Text>
+        </View>
+
+        {/* Activity preview with time */}
         <View
           style={[
-            styles.sheet,
+            styles.preview,
             {
-              backgroundColor: theme.card,
-              borderColor: theme.border,
+              backgroundColor: isDark
+                ? theme.primary + "10"
+                : theme.primary + "08",
+              borderColor: theme.primary + "20",
             },
           ]}
         >
-          {/* Handle bar */}
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
-
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={24} color={theme.textSecondary} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>
-              إضافة للجدول
+          <Text style={[styles.previewTitle, { color: theme.text }]}>
+            {displayActivity.title}
+          </Text>
+          <View style={styles.previewTimeRow}>
+            <Ionicons name="time-outline" size={14} color={theme.primary} />
+            <Text style={[styles.previewTime, { color: theme.primary }]}>
+              {displayActivity.startTime}
             </Text>
           </View>
+        </View>
 
-          {/* Activity preview */}
-          <View
-            style={[
-              styles.preview,
-              {
-                backgroundColor: isDark
-                  ? theme.primary + "10"
-                  : theme.primary + "08",
-                borderColor: theme.primary + "20",
-              },
-            ]}
-          >
-            <Text style={[styles.previewTitle, { color: theme.text }]}>
-              {activity.title}
-            </Text>
-          </View>
+        {/* Offset label */}
+        <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          التنبيه
+        </Text>
 
-          {/* Anchor mode toggle */}
-          <View
-            style={[
-              styles.segmentedControl,
-              { backgroundColor: isDark ? theme.background : "#F1F5F9" },
-            ]}
-          >
-            {(["fixed", "prayer"] as AnchorMode[]).map((mode) => {
-              const active = anchorMode === mode;
-              return (
-                <TouchableOpacity
-                  key={mode}
-                  onPress={() => {
-                    setAnchorMode(mode);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
+        {/* Offset chips */}
+        <View style={styles.offsetGrid}>
+          {OFFSET_OPTIONS.map((offset) => {
+            const active = selectedOffset === offset;
+            return (
+              <TouchableOpacity
+                key={offset}
+                onPress={() => {
+                  setSelectedOffset(offset);
+                  Haptics.selectionAsync();
+                }}
+                style={[
+                  styles.offsetChip,
+                  {
+                    backgroundColor: active
+                      ? theme.primary + "18"
+                      : "transparent",
+                    borderColor: active ? theme.primary : theme.border,
+                  },
+                ]}
+              >
+                <Text
                   style={[
-                    styles.segment,
-                    active && {
-                      backgroundColor: theme.card,
-                      ...(!isDark ? Shadows.light : {}),
+                    styles.offsetChipText,
+                    {
+                      color: active ? theme.primary : theme.text,
+                      fontFamily: active ? Fonts.mdsans : Fonts.rsans,
                     },
                   ]}
                 >
-                  <Ionicons
-                    name={mode === "fixed" ? "time-outline" : "moon-outline"}
-                    size={16}
-                    color={active ? theme.primary : theme.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      styles.segmentLabel,
-                      {
-                        color: active ? theme.primary : theme.textSecondary,
-                        fontFamily: active ? Fonts.bdsans : Fonts.rsans,
-                      },
-                    ]}
-                  >
-                    {mode === "fixed" ? "وقت محدد" : "صلاة"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Content based on mode */}
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {anchorMode === "fixed" ? (
-              <View style={styles.timePickerContainer}>
-                <Text
-                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
-                >
-                  اختر الوقت
+                  {offsetLabel(offset)}
                 </Text>
-                <View style={styles.timePicker}>
-                  {/* Minutes */}
-                  <View style={styles.timeGroup}>
-                    <Text
-                      style={[styles.timeLabel, { color: theme.textSecondary }]}
-                    >
-                      الدقيقة
-                    </Text>
-                    <ScrollView
-                      style={styles.timeScroll}
-                      showsVerticalScrollIndicator={false}
-                    >
-                      {MINUTES.map((m) => (
-                        <TouchableOpacity
-                          key={m}
-                          onPress={() => {
-                            setSelectedMinute(m);
-                            Haptics.selectionAsync();
-                          }}
-                          style={[
-                            styles.timeChip,
-                            selectedMinute === m && {
-                              backgroundColor: theme.primary + "18",
-                              borderColor: theme.primary,
-                            },
-                            selectedMinute !== m && {
-                              borderColor: theme.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.timeChipText,
-                              {
-                                color:
-                                  selectedMinute === m
-                                    ? theme.primary
-                                    : theme.text,
-                              },
-                            ]}
-                          >
-                            {m}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-
-                  <Text style={[styles.colon, { color: theme.text }]}>:</Text>
-
-                  {/* Hours */}
-                  <View style={styles.timeGroup}>
-                    <Text
-                      style={[styles.timeLabel, { color: theme.textSecondary }]}
-                    >
-                      الساعة
-                    </Text>
-                    <ScrollView
-                      style={styles.timeScroll}
-                      showsVerticalScrollIndicator={false}
-                    >
-                      {HOURS.map((h) => (
-                        <TouchableOpacity
-                          key={h}
-                          onPress={() => {
-                            setSelectedHour(h);
-                            Haptics.selectionAsync();
-                          }}
-                          style={[
-                            styles.timeChip,
-                            selectedHour === h && {
-                              backgroundColor: theme.primary + "18",
-                              borderColor: theme.primary,
-                            },
-                            selectedHour !== h && {
-                              borderColor: theme.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.timeChipText,
-                              {
-                                color:
-                                  selectedHour === h
-                                    ? theme.primary
-                                    : theme.text,
-                              },
-                            ]}
-                          >
-                            {h}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.prayerContainer}>
-                {/* Prayer selector */}
-                <Text
-                  style={[styles.sectionLabel, { color: theme.textSecondary }]}
-                >
-                  اختر الصلاة
-                </Text>
-                <View style={styles.prayerGrid}>
-                  {PRAYER_IDS.map((id) => {
-                    const active = selectedPrayer === id;
-                    return (
-                      <TouchableOpacity
-                        key={id}
-                        onPress={() => {
-                          setSelectedPrayer(id);
-                          Haptics.selectionAsync();
-                        }}
-                        style={[
-                          styles.prayerChip,
-                          {
-                            backgroundColor: active
-                              ? theme.accent + "20"
-                              : "transparent",
-                            borderColor: active ? theme.accent : theme.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.prayerChipText,
-                            {
-                              color: active ? theme.accent : theme.text,
-                              fontFamily: active ? Fonts.bdsans : Fonts.rsans,
-                            },
-                          ]}
-                        >
-                          {PRAYER_LABELS[id]}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                {/* Offset selector */}
-                <Text
-                  style={[
-                    styles.sectionLabel,
-                    { color: theme.textSecondary, marginTop: Spacing.lg },
-                  ]}
-                >
-                  التوقيت النسبي
-                </Text>
-                <View style={styles.offsetGrid}>
-                  {OFFSET_OPTIONS.map((offset) => {
-                    const active = selectedOffset === offset;
-                    return (
-                      <TouchableOpacity
-                        key={offset}
-                        onPress={() => {
-                          setSelectedOffset(offset);
-                          Haptics.selectionAsync();
-                        }}
-                        style={[
-                          styles.offsetChip,
-                          {
-                            backgroundColor: active
-                              ? theme.primary + "18"
-                              : "transparent",
-                            borderColor: active ? theme.primary : theme.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.offsetChipText,
-                            {
-                              color: active ? theme.primary : theme.text,
-                              fontFamily: active ? Fonts.mdsans : Fonts.rsans,
-                            },
-                          ]}
-                        >
-                          {offsetLabel(offset)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Save button */}
-          <TouchableOpacity
-            onPress={handleSave}
-            activeOpacity={0.8}
-            style={[styles.saveBtn, { backgroundColor: theme.primary }]}
-          >
-            <Text style={styles.saveBtnText}>حفظ في الجدول</Text>
-            <Ionicons name="bookmark" size={18} color="#fff" />
-          </TouchableOpacity>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </View>
-    </Modal>
+
+        {/* Save button */}
+        <TouchableOpacity
+          onPress={handleSave}
+          activeOpacity={0.8}
+          style={[styles.saveBtn, { backgroundColor: theme.primary }]}
+        >
+          <Text style={styles.saveBtnText}>حفظ في الجدول</Text>
+          <Ionicons name="bookmark" size={18} color="#fff" />
+        </TouchableOpacity>
+      </BottomSheetView>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    paddingBottom: Platform.OS === "ios" ? 34 : 20,
-    maxHeight: "85%",
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -457,93 +298,29 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mdsans,
     textAlign: "right",
   },
-  segmentedControl: {
-    flexDirection: "row",
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    padding: 4,
-    marginBottom: Spacing.md,
-  },
-  segment: {
-    flex: 1,
+  previewTimeRow: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.sm,
+    gap: 4,
+    marginTop: 4,
   },
-  segmentLabel: {
+  previewTime: {
     fontSize: 14,
-  },
-  body: {
-    paddingHorizontal: Spacing.lg,
-    maxHeight: 300,
+    fontFamily: Fonts.mdsans,
   },
   sectionLabel: {
     fontSize: 13,
     fontFamily: Fonts.mdsans,
     textAlign: "right",
     marginBottom: Spacing.sm,
-  },
-  // ── Fixed time picker ──────
-  timePickerContainer: {},
-  timePicker: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    gap: Spacing.md,
-  },
-  timeGroup: {
-    alignItems: "center",
-    flex: 1,
-  },
-  timeLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.rsans,
-    marginBottom: Spacing.xs,
-  },
-  timeScroll: {
-    maxHeight: 180,
-  },
-  timeChip: {
-    borderWidth: 1.5,
-    borderRadius: BorderRadius.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.xs,
-    alignItems: "center",
-    minWidth: 56,
-  },
-  timeChipText: {
-    fontSize: 18,
-    fontFamily: Fonts.mdsans,
-  },
-  colon: {
-    fontSize: 28,
-    fontFamily: Fonts.bdsans,
-    marginTop: 28,
-  },
-  // ── Prayer selector ────────
-  prayerContainer: {},
-  prayerGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  prayerChip: {
-    borderWidth: 1.5,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md + 2,
-  },
-  prayerChipText: {
-    fontSize: 15,
+    paddingHorizontal: Spacing.lg,
   },
   offsetGrid: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   offsetChip: {
     borderWidth: 1.5,
@@ -554,7 +331,6 @@ const styles = StyleSheet.create({
   offsetChipText: {
     fontSize: 13,
   },
-  // ── Save button ────────────
   saveBtn: {
     flexDirection: "row-reverse",
     alignItems: "center",

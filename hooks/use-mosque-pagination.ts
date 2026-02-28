@@ -1,7 +1,7 @@
 import { Mosque } from "@/constants/mockData";
 import {
-  calculateDistance,
   extractCoordsFromUrl,
+  getDistanceKm,
   getPreferredLocation,
   resolveGoogleMapsLink,
 } from "@/lib/location";
@@ -106,7 +106,10 @@ export function useMosquePagination({
     if (!loc) return items;
     return items.map((m) => ({
       ...m,
-      distance: calculateDistance(m.mapsUrl, loc.latitude, loc.longitude),
+      distance:
+        m.latitude && m.longitude
+          ? getDistanceKm(loc.latitude, loc.longitude, m.latitude, m.longitude)
+          : 0,
     }));
   }, []);
 

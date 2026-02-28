@@ -6,11 +6,12 @@ import { PrayerName, useAdhanStore } from "@/lib/stores/adhanStore";
 import { useAuthStore } from "@/lib/stores/authStore";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
+import * as StoreReview from "expo-store-review";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as StoreReview from "expo-store-review";
 import {
   Linking,
+  Pressable,
   ScrollView,
   Share,
   StyleSheet,
@@ -70,7 +71,9 @@ export default function ProfileScreen() {
     Constants.expoConfig?.version ??
     Constants.manifest2?.extra?.expoClient?.version ??
     "1.0.0";
-
+  const showOnboarding = () => {
+    router.push("/onboarding");
+  };
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -85,9 +88,20 @@ export default function ProfileScreen() {
         entering={FadeInDown.duration(300).easing(Easing.inOut(Easing.ease))}
         style={styles.headerContainer}
       >
-        <Text style={[styles.header, { color: colors.tint }]}>{t("settings.title")}</Text>
+        <Text style={[styles.header, { color: colors.tint }]}>
+          {t("settings.title")}
+        </Text>
       </Animated.View>
-
+      <Animated.View
+        entering={FadeInDown.duration(300).easing(Easing.inOut(Easing.ease))}
+        style={styles.headerContainer}
+      >
+        <Pressable onPress={showOnboarding}>
+          <Text style={[styles.header, { color: colors.tint }]}>
+            {t("settings.title")}ssssss
+          </Text>
+        </Pressable>
+      </Animated.View>
       {/* ─── عام (General) ─── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
@@ -166,7 +180,9 @@ export default function ProfileScreen() {
         >
           <AnimatedSettingRow
             icon={session ? "shield-checkmark" : "shield-outline"}
-            title={session ? t("settings.adminDashboard") : t("settings.adminLogin")}
+            title={
+              session ? t("settings.adminDashboard") : t("settings.adminLogin")
+            }
             index={5}
             isLast={!!session}
             onPress={() =>

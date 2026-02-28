@@ -1,3 +1,16 @@
+import { fontAssets } from "@/constants/fonts";
+import {
+  ThemeProvider as AppThemeProvider,
+  useTheme,
+} from "@/context/ThemeContext";
+import { initializeAlarms } from "@/lib/alarms";
+import "@/lib/backgroundNotificationTask"; // must import at top level to register the task
+import { registerBackgroundNotificationTask } from "@/lib/backgroundNotificationTask";
+import { rescheduleAllEventNotifications } from "@/lib/eventNotifications";
+import "@/lib/i18n";
+import { useAdhanStore } from "@/lib/stores/adhanStore";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { useScheduleStore } from "@/lib/stores/scheduleStore";
 import { PortalProvider } from "@gorhom/portal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -14,17 +27,6 @@ import { useEffect, useRef, useState } from "react";
 import { AppState, I18nManager } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-
-import BatteryOptimizationModal from "@/components/BatteryOptimizationModal";
-import { fontAssets } from "@/constants/fonts";
-import {
-  ThemeProvider as AppThemeProvider,
-  useTheme,
-} from "@/context/ThemeContext";
-import { initializeAlarms } from "@/lib/alarms";
-import "@/lib/i18n";
-import { useAdhanStore } from "@/lib/stores/adhanStore";
-import { useAuthStore } from "@/lib/stores/authStore";
 
 const ONBOARDING_KEY = "@masjidie/onboarding_completed";
 
@@ -71,6 +73,10 @@ function RootLayoutContent() {
       SplashScreen.hideAsync();
       initializeAlarms();
       initialize();
+      // Hydrate schedule store (also reschedules event notifications)
+      useScheduleStore.getState().hydrate();
+      // Register background task for periodic notification rescheduling
+      registerBackgroundNotificationTask();
 
       if (!onboardingDone) {
         router.replace("/onboarding");
@@ -89,6 +95,11 @@ function RootLayoutContent() {
           useAdhanStore.getState();
         if (initialized) {
           recalculateAndSchedule();
+        }
+        // Reschedule event notifications too
+        const { events, isHydrated } = useScheduleStore.getState();
+        if (isHydrated) {
+          rescheduleAllEventNotifications(events);
         }
       }
       appStateRef.current = nextState;
@@ -121,6 +132,10 @@ function RootLayoutContent() {
           name="onboarding"
           options={{ headerShown: false, animation: "fade" }}
         />
+        <Stack.Screen
+          name="location-permission"
+          options={{ headerShown: false, animation: "fade" }}
+        />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
         <Stack.Screen
@@ -133,7 +148,6 @@ function RootLayoutContent() {
         />
       </Stack>
       <StatusBar style="auto" />
-      <BatteryOptimizationModal />
     </NavThemeProvider>
   );
 }

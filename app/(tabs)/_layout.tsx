@@ -1,3 +1,4 @@
+import BatteryOptimizationModal from "@/components/BatteryOptimizationModal";
 import { AnimatedTabBar } from "@/components/navigation/AnimatedTabBar";
 import { Tabs } from "expo-router";
 import React from "react";
@@ -14,6 +15,8 @@ export default function TabLayout() {
           headerShown: false,
         }}
       >
+        <BatteryOptimizationModal />
+
         <Tabs.Screen
           name="index"
           options={{

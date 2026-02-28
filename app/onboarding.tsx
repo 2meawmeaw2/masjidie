@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
 
   const completeOnboarding = useCallback(async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, "true");
-    router.replace("/(tabs)");
+    router.replace("/location-permission");
   }, []);
 
   const logoWidth = 220;
@@ -90,7 +90,7 @@ export default function OnboardingScreen() {
       {/* Logo assembly */}
       <View
         onLayout={handleLayout}
-        style={[styles.logoArea, { marginTop: insets.top + 60 }]}
+        style={[styles.logoArea, { marginTop: insets.top + 40 }]}
       >
         {/* Dome — drops in from top */}
         <Animated.View
@@ -166,23 +166,49 @@ export default function OnboardingScreen() {
       >
         {t("onboarding.subtitle")}
       </Animated.Text>
-
-      {/* Get Started button */}
+      {/*bottom*/}
       <Animated.View
         entering={FadeInDown.delay(1800)
           .duration(1000)
           .easing(Easing.out(Easing.cubic))}
         style={[
-          styles.buttonWrapper,
-          { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+          {
+            width: "100%",
+            height: 130,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            borderTopRightRadius: 30,
+            borderTopLeftRadius: 30,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingBottom: Math.max(insets.bottom, Spacing.xl),
+            zIndex: 1,
+            elevation: 8,
+            shadowColor: colors.tint,
+          },
         ]}
       >
-        <Pressable
-          onPress={completeOnboarding}
-          style={[styles.button, { backgroundColor: colors.primary }]}
+        <Animated.View
+          entering={FadeInDown.delay(1800)
+            .duration(1000)
+            .easing(Easing.out(Easing.cubic))}
+          style={[
+            styles.buttonWrapper,
+            { paddingBottom: Math.max(insets.bottom, Spacing.xl) },
+          ]}
         >
-          <Text style={styles.buttonText}>{t("onboarding.get_started")}</Text>
-        </Pressable>
+          <Pressable
+            onPress={completeOnboarding}
+            style={[styles.button, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.buttonText}>{t("onboarding.get_started")}</Text>
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     </LinearGradient>
   );

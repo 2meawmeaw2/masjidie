@@ -1,10 +1,9 @@
 import { ActivityCard } from "@/components/ActivityCard";
 import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
 import { MosqueCard } from "@/components/MosqueCard";
-import { AmbientBackground } from "@/components/ui/ambientBG";
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { calculateDistance, getPreferredLocation } from "@/lib/location";
+import { getDistanceKm, getPreferredLocation } from "@/lib/location";
 import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
@@ -60,11 +59,15 @@ export default function ExploreScreen() {
       if (location && mosques.length > 0) {
         const updatedMosques = mosques.map((mosque) => ({
           ...mosque,
-          distance: calculateDistance(
-            mosque.mapsUrl,
-            location.latitude,
-            location.longitude,
-          ),
+          distance:
+            mosque.latitude && mosque.longitude
+              ? getDistanceKm(
+                  location.latitude,
+                  location.longitude,
+                  mosque.latitude,
+                  mosque.longitude,
+                )
+              : 0,
         }));
         setMosquesWithDistance(updatedMosques);
       } else if (mosques.length > 0) {
@@ -153,7 +156,7 @@ export default function ExploreScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
       edges={["top"]}
     >
-      <AmbientBackground />
+      {/*<AmbientBackground />*/}
 
       {/* Header */}
       <View style={styles.header}>

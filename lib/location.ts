@@ -9,56 +9,106 @@ export interface GeoCoordinate {
 }
 
 /**
- * Converts degrees to radians
+ * Calculates driving distance using OSRM by extracting destination
+ * coordinates from a Google Maps URL.
+ * @returns Distance in km as a string (e.g. "3.2"), or null on failure
  */
-function toRad(value: number): number {
-  return (value * Math.PI) / 180;
-}
-
-/**
- * Calculates straight-line distance between user and a mosque using the
- * Haversine formula. Extracts the mosque coordinates from its Google Maps URL.
- * @returns Distance in km (number), or 0 if coordinates can't be determined
- */
-export function calculateDistance(
+export async function calculateDistance(
   googleMapsUrl: string,
   userlat: string | number | undefined,
   userlon: string | number | undefined,
+) {
+  try {
+    // 1. Safety Check: Do we even have user coords?
+    if (!userlat || !userlon) {
+      throw new Error("User coordinates are missing. Wait for GPS to lock.");
+    }
+
+    const decodedUrl = decodeURIComponent(googleMapsUrl);
+    let destLat, destLng;
+
+    // Regex patterns
+    const regexAt = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const regexQuery = /query=(-?\d+\.\d+),(-?\d+\.\d+)/;
+
+    const matchAt = decodedUrl.match(regexAt);
+    const matchQuery = decodedUrl.match(regexQuery);
+
+    if (matchAt) {
+      destLat = matchAt[1];
+      destLng = matchAt[2];
+    } else if (matchQuery) {
+      destLat = matchQuery[1];
+      destLng = matchQuery[2];
+    } else {
+      throw new Error("Could not find coordinates in Google Maps URL.");
+    }
+
+    // 2. Construct URL - OSRM MUST have [Longitude],[Latitude]
+    // Trim values to remove any accidental whitespace
+    const origin = `${String(userlon).trim()},${String(userlat).trim()}`;
+    const destination = `${String(destLng).trim()},${String(destLat).trim()}`;
+
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin};${destination}?overview=false`;
+
+    // 3. Fetch with Headers (React Native sometimes needs these)
+
+    const response = await fetch(osrmUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.code !== "Ok") {
+      throw new Error(`OSRM Error: ${data.code}`);
+    }
+
+    if (data.code === "Ok" && data.routes.length > 0) {
+      const route = data.routes[0];
+
+      // Convert meters to kilometers
+      const distanceKm = (route.distance / 1000).toFixed(1);
+
+      // Convert seconds to minutes
+
+      return distanceKm;
+    } else {
+      throw new Error(`OSRM Error: ${data.code}`);
+    }
+  } catch (error: any) {
+    console.error("Distance Calculation Error:", error.message);
+    return null;
+  }
+}
+/**
+ * Fast local distance calculation using the Haversine formula.
+ * Returns distance in km. Use this for list views / sorting instead
+ * of the OSRM-based `calculateDistance` which makes a network call per mosque.
+ */
+export function getDistanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
 ): number {
-  if (!userlat || !userlon || !googleMapsUrl) return 0;
-
-  const lat1 = typeof userlat === "string" ? parseFloat(userlat) : userlat;
-  const lon1 = typeof userlon === "string" ? parseFloat(userlon) : userlon;
-
-  // Extract destination coords from the Google Maps URL
-  const decodedUrl = decodeURIComponent(googleMapsUrl);
-  const regexAt = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-  const regexQuery = /query=(-?\d+\.\d+),(-?\d+\.\d+)/;
-  const regexData = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/;
-
-  const match =
-    decodedUrl.match(regexAt) ||
-    decodedUrl.match(regexQuery) ||
-    decodedUrl.match(regexData);
-
-  if (!match) return 0;
-
-  const lat2 = parseFloat(match[1]);
-  const lon2 = parseFloat(match[2]);
-
-  // Haversine formula
   const R = 6371; // Earth radius in km
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Number((R * c).toFixed(1));
+  const distance = (R * c).toFixed(1);
+  return parseFloat(distance);
 }
+
 /**
  * Requests permissions and gets current user location
  */

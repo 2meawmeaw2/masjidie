@@ -9,6 +9,7 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { getDistanceKm, getPreferredLocation } from "@/lib/location";
 import { useBookmarksStore } from "@/lib/stores/bookmarksStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
@@ -18,7 +19,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -59,6 +66,20 @@ export default function ScheduleScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // ── User location for distance calc ────────
+  const userLocationRef = useRef<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [locationReady, setLocationReady] = useState(false);
+
+  useEffect(() => {
+    getPreferredLocation().then((loc) => {
+      userLocationRef.current = loc;
+      setLocationReady(true);
+    });
+  }, []);
+
   // Hydrate on mount
   useEffect(() => {
     if (!isHydrated) hydrate();
@@ -68,11 +89,18 @@ export default function ScheduleScreen() {
   }, []);
 
   const sorted = getSortedEvents();
-
-  const savedMosques = useMemo(
-    () => mosques.filter((m) => savedMosqueIds.includes(m.id)),
-    [mosques, savedMosqueIds],
-  );
+  const savedMosques = useMemo(() => {
+    const filtered = mosques.filter((m) => savedMosqueIds.includes(m.id));
+    const loc = userLocationRef.current;
+    if (!loc) return filtered;
+    return filtered.map((m) => ({
+      ...m,
+      distance:
+        m.latitude && m.longitude
+          ? getDistanceKm(loc.latitude, loc.longitude, m.latitude, m.longitude)
+          : 0,
+    }));
+  }, [mosques, savedMosqueIds, locationReady]);
 
   const savedSchools = useMemo(
     () => schools.filter((s) => savedSchoolIds.includes(s.id)),
@@ -291,7 +319,9 @@ export default function ScheduleScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <Text style={[styles.headerTitle, { color: theme.tint }]}>{t("schedule.mySchedule")}</Text>
+          <Text style={[styles.headerTitle, { color: theme.tint }]}>
+            {t("schedule.mySchedule")}
+          </Text>
           <Text style={[styles.headerDate, { color: theme.tint + "70" }]}>
             {todayLabel}
           </Text>

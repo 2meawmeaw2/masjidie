@@ -33,10 +33,13 @@ interface ScheduledEventBase {
   eventId: string;
   /** Snapshot for offline display */
   title: string;
-  categoryId: CategoryId;
+  categoryId?: CategoryId;
+  categoryName?: string;
   /** Optional user note */
   note?: string;
   createdAt: string; // ISO string
+  mosqueName?: string;
+  mapsUrl?: string;
 }
 
 /** Pinned to an absolute clock time */

@@ -132,6 +132,13 @@
     "subtitle": "Discover mosques, activities, and prayer times in your community",
     "get_started": "Get Started"
   },
+  "locationPermission": {
+    "title": "Enable Location",
+    "description": "Allow location access for accurate prayer times and to find nearby mosques",
+    "enable": "Enable Location",
+    "skip": "Skip for now",
+    "loading": "Getting your location..."
+  },
   "schedule": {
     "mySchedule": "My Schedule",
     "noSavedEvents": "No saved events",
@@ -187,5 +194,9 @@
     "ummAlQura": "Umm Al-Qura",
     "northAmerica": "North America (ISNA)",
     "karachi": "Karachi"
+  },
+  "notifications": {
+    "eventReminderTitle": "Event Reminder",
+    "eventReminderBody": "It's time for: {{title}}"
   }
 }

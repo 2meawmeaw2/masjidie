@@ -5,6 +5,11 @@ import {
   PrayerTimesMap,
   resolveSortKey,
 } from "@/lib/types/schedule";
+import {
+  scheduleEventNotification,
+  cancelEventNotification,
+  rescheduleAllEventNotifications,
+} from "@/lib/eventNotifications";
 
 // ──────────────────────────────────────────────
 // Persistence key
@@ -65,18 +70,22 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   hydrate: async () => {
     const events = await load();
     set({ events, isHydrated: true });
+    // Reschedule all event notifications on hydration
+    rescheduleAllEventNotifications(events);
   },
 
   addEvent: (event) => {
     const next = [...get().events, event];
     set({ events: next });
     persist(next);
+    scheduleEventNotification(event);
   },
 
   removeEvent: (id) => {
     const next = get().events.filter((e) => e.id !== id);
     set({ events: next });
     persist(next);
+    cancelEventNotification(id);
   },
 
   updateEvent: (id, patch) => {

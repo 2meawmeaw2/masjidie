@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import { IslamicSchool } from "@/constants/mockData";
+import {
+  CACHE_DURATION,
+  fetchWithRetry,
+  loadPersistentCache,
+  persistCache,
+} from "@/lib/fetchUtils";
 import { supabase } from "@/lib/supabase";
 
-// ──────────────────────────────────────────────
-// Cache configuration
-// ──────────────────────────────────────────────
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY = "schools";
 
 // ──────────────────────────────────────────────
 // Supabase row type
@@ -103,19 +106,37 @@ export const useIslamicSchoolsStore = create<IslamicSchoolsState>(
     lastFetched: null,
 
     fetchSchools: async (forceRefresh = false) => {
-      const { lastFetched, isLoading } = get();
+      const { lastFetched, isLoading, schools: currentSchools } = get();
 
       if (isLoading) return;
 
+      // 1. If in-memory data is empty, load from persistent cache
+      if (currentSchools.length === 0) {
+        const cached = await loadPersistentCache<IslamicSchool[]>(CACHE_KEY);
+        if (cached) {
+          set({ schools: cached.data, lastFetched: cached.timestamp });
+          if (!forceRefresh && Date.now() - cached.timestamp < CACHE_DURATION) {
+            return;
+          }
+        }
+      }
+
+      // 2. If in-memory cache is fresh, stop
       const isCacheFresh =
         lastFetched !== null && Date.now() - lastFetched < CACHE_DURATION;
       if (isCacheFresh && !forceRefresh) return;
 
-      set({ isLoading: true, error: null });
+      // 3. Stale data exists → fetch in background (no loading spinner)
+      const hasStaleData = get().schools.length > 0;
+      if (!hasStaleData) {
+        set({ isLoading: true });
+      }
+      set({ error: null });
 
       try {
-        const schools = await fetchSchoolsFromAPI();
+        const schools = await fetchWithRetry(fetchSchoolsFromAPI);
         set({ schools, isLoading: false, lastFetched: Date.now() });
+        persistCache(CACHE_KEY, schools);
       } catch (error) {
         set({
           error:

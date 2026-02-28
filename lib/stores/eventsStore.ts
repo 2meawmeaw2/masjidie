@@ -1,12 +1,15 @@
-import { create } from "zustand";
-import { Activity } from "@/constants/mockData";
 import { CategoryId } from "@/constants/categories";
+import { Activity } from "@/constants/mockData";
+import {
+  CACHE_DURATION,
+  fetchWithRetry,
+  loadPersistentCache,
+  persistCache,
+} from "@/lib/fetchUtils";
 import { supabase } from "@/lib/supabase";
+import { create } from "zustand";
 
-// ──────────────────────────────────────────────
-// Cache configuration
-// ──────────────────────────────────────────────
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY = "events";
 
 // ──────────────────────────────────────────────
 // Supabase row type
@@ -101,19 +104,37 @@ export const useEventsStore = create<EventsState>((set, get) => ({
   lastFetched: null,
 
   fetchEvents: async (forceRefresh = false) => {
-    const { lastFetched, isLoading } = get();
+    const { lastFetched, isLoading, events: currentEvents } = get();
 
     if (isLoading) return;
 
+    // 1. If in-memory data is empty, load from persistent cache
+    if (currentEvents.length === 0) {
+      const cached = await loadPersistentCache<Activity[]>(CACHE_KEY);
+      if (cached) {
+        set({ events: cached.data, lastFetched: cached.timestamp });
+        if (!forceRefresh && Date.now() - cached.timestamp < CACHE_DURATION) {
+          return;
+        }
+      }
+    }
+
+    // 2. If in-memory cache is fresh, stop
     const isCacheFresh =
       lastFetched !== null && Date.now() - lastFetched < CACHE_DURATION;
     if (isCacheFresh && !forceRefresh) return;
 
-    set({ isLoading: true, error: null });
+    // 3. Stale data exists → fetch in background (no loading spinner)
+    const hasStaleData = get().events.length > 0;
+    if (!hasStaleData) {
+      set({ isLoading: true });
+    }
+    set({ error: null });
 
     try {
-      const events = await fetchEventsFromAPI();
+      const events = await fetchWithRetry(fetchEventsFromAPI);
       set({ events, isLoading: false, lastFetched: Date.now() });
+      persistCache(CACHE_KEY, events);
     } catch (error) {
       set({
         error:

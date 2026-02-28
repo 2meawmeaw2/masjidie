@@ -20,15 +20,15 @@ import {
   View,
 } from "react-native";
 
-const CATEGORY_IDS = [
-  "tafsir",
-  "fiqh",
-  "lecture",
-  "tahfidh",
-  "seerah",
-  "hadith",
-  "children",
-  "women",
+const CATEGORIES_OPTIONS = [
+  { id: "tafsir", label: "تفسير" },
+  { id: "fiqh", label: "فقه" },
+  { id: "lecture", label: "محاضرة" },
+  { id: "tahfidh", label: "تحفيظ" },
+  { id: "seerah", label: "سيرة" },
+  { id: "hadith", label: "حديث" },
+  { id: "children", label: "أطفال" },
+  { id: "women", label: "نساء" },
 ];
 
 const DAY_LABELS = [
@@ -303,9 +303,9 @@ export default function EditEventScreen() {
         <View style={styles.fieldGroup}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.chipRow}>
-              {CATEGORY_IDS.map((cat) =>
-                chip(cat, form.category_id === cat, () =>
-                  setForm((f) => ({ ...f, category_id: cat })),
+              {CATEGORIES_OPTIONS.map((cat) =>
+                chip(cat.label, form.category_id === cat.id, () =>
+                  setForm((f) => ({ ...f, category_id: cat.id })),
                 ),
               )}
             </View>

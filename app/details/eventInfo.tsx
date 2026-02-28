@@ -1,27 +1,28 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  StatusBar,
-  ActivityIndicator,
-} from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, BorderRadius, Fonts } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useMosquesStore } from "@/lib/stores/mosquesStore";
-import { CATEGORIES } from "@/constants/categories";
-import { useTranslation } from "react-i18next";
+import { AddToScheduleSheet } from "@/components/AddToScheduleSheet";
 import { Badge } from "@/components/ui/Badge";
+import { CATEGORIES } from "@/constants/categories";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { handleOpenMaps } from "@/lib/location";
 import { useEventsStore } from "@/lib/stores/eventsStore";
+import { useMosquesStore } from "@/lib/stores/mosquesStore";
 import { useScheduleStore } from "@/lib/stores/scheduleStore";
-import { AddToScheduleSheet } from "@/components/AddToScheduleSheet";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function EventDetails() {
   const { id } = useLocalSearchParams();
@@ -29,7 +30,8 @@ export default function EventDetails() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
-
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { events, fetchEvents, isLoading } = useEventsStore();
   const isEventSaved = useScheduleStore((s) => s.isEventSaved);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -43,6 +45,7 @@ export default function EventDetails() {
   const { mosques } = useMosquesStore();
 
   const activity = events.find((a) => a.id === id);
+  console.log(activity, "activity");
   const mosque = activity
     ? mosques.find((m) => m.id === activity.mosqueId)
     : undefined;
@@ -91,10 +94,25 @@ export default function EventDetails() {
           headerTitle: "",
           headerTransparent: true,
           headerTintColor: "#fff",
+          headerShown: false,
         }}
       />
       <StatusBar barStyle="light-content" />
-
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          right: 10,
+          top: 10 + insets.top,
+          zIndex: 1,
+          backgroundColor: theme.tint + "60",
+          padding: 10,
+          borderRadius: BorderRadius.md,
+        }}
+        activeOpacity={0.7}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} color="white" />
+      </TouchableOpacity>
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         bounces={false}

@@ -132,6 +132,13 @@
     "subtitle": "Découvrez les mosquées, activités et horaires de prière dans votre communauté",
     "get_started": "Commencer"
   },
+  "locationPermission": {
+    "title": "Activer la localisation",
+    "description": "Autorisez l'accès à votre position pour des horaires de prière précis et trouver les mosquées proches",
+    "enable": "Activer la localisation",
+    "skip": "Passer",
+    "loading": "Recherche de votre position..."
+  },
   "schedule": {
     "mySchedule": "Mon calendrier",
     "noSavedEvents": "Aucun événement sauvegardé",
@@ -187,5 +194,9 @@
     "ummAlQura": "Oum Al-Qura",
     "northAmerica": "Amérique du Nord (ISNA)",
     "karachi": "Karachi"
+  },
+  "notifications": {
+    "eventReminderTitle": "Rappel d'activité",
+    "eventReminderBody": "C'est l'heure de : {{title}}"
   }
 }

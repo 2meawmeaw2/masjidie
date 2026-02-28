@@ -1,4 +1,10 @@
 import { Mosque } from "@/constants/mockData";
+import {
+  CACHE_DURATION,
+  fetchWithRetry,
+  loadPersistentCache,
+  persistCache,
+} from "@/lib/fetchUtils";
 import { extractCoordsFromUrl, resolveGoogleMapsLink } from "@/lib/location";
 import { supabase } from "@/lib/supabase";
 import { SupabaseMosque, mapSupabaseMosqueToMosque } from "@/lib/types/mosque";
@@ -7,10 +13,7 @@ import { create } from "zustand";
 // Re-export for backwards compatibility
 export { extractCoordsFromUrl, resolveGoogleMapsLink };
 
-// ──────────────────────────────────────────────
-// Cache configuration
-// ──────────────────────────────────────────────
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY = "mosques";
 
 // ──────────────────────────────────────────────
 // Fetch from Supabase
@@ -54,19 +57,38 @@ export const useMosquesStore = create<MosquesState>((set, get) => ({
   lastFetched: null,
 
   fetchMosques: async (forceRefresh = false) => {
-    const { lastFetched, isLoading } = get();
+    const { lastFetched, isLoading, mosques: currentMosques } = get();
 
     if (isLoading) return;
 
+    // 1. If in-memory data is empty, load from persistent cache
+    if (currentMosques.length === 0) {
+      const cached = await loadPersistentCache<Mosque[]>(CACHE_KEY);
+      if (cached) {
+        set({ mosques: cached.data, lastFetched: cached.timestamp });
+        // If persistent cache is fresh and not force-refresh, stop
+        if (!forceRefresh && Date.now() - cached.timestamp < CACHE_DURATION) {
+          return;
+        }
+      }
+    }
+
+    // 2. If in-memory cache is fresh, stop
     const isCacheFresh =
       lastFetched !== null && Date.now() - lastFetched < CACHE_DURATION;
     if (isCacheFresh && !forceRefresh) return;
 
-    set({ isLoading: true, error: null });
+    // 3. Stale data exists → fetch in background (no loading spinner)
+    const hasStaleData = get().mosques.length > 0;
+    if (!hasStaleData) {
+      set({ isLoading: true });
+    }
+    set({ error: null });
 
     try {
-      const mosques = await fetchMosquesFromAPI();
+      const mosques = await fetchWithRetry(fetchMosquesFromAPI);
       set({ mosques, isLoading: false, lastFetched: Date.now() });
+      persistCache(CACHE_KEY, mosques);
 
       get().resolveMissingCoordinates();
     } catch (error) {

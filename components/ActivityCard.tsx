@@ -38,7 +38,6 @@ export function ActivityCard({
   const { t } = useTranslation();
   const category = CATEGORIES[activity.categoryId];
   const isDark = colorScheme === "dark";
-
   const getDayName = (dayIndex?: number) => {
     if (dayIndex === undefined) return "";
     const days = [
