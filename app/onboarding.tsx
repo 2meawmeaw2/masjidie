@@ -58,6 +58,7 @@ export default function OnboardingScreen() {
   const crescentStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: crescentY.value }],
     scale: crescentY.value,
+    rotateZ: 20,
   }));
 
   const completeOnboarding = useCallback(async () => {

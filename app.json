@@ -38,9 +38,9 @@
           "image": "./assets/logoSpaced.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#f9f9f9",
           "dark": {
-            "backgroundColor": "#111827"
+            "backgroundColor": "#f9f9f9"
           }
         }
       ],
