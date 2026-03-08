@@ -29,7 +29,6 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   ScrollView,
@@ -60,6 +59,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ActivityIndicator } from "@/components/ui/activityIndicator";
 import { AmbientBackground } from "@/components/ui/ambientBG";
 
 // ── Easing presets ──────────────────────────────────
@@ -517,7 +517,11 @@ export default function HomeScreen() {
         {/* Mosque List */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <ActivityIndicator
+              stroke={8}
+              size={40}
+              colorsArray={[theme.tint, theme.text, theme.tint, theme.text]}
+            />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
               {t("explore.loading")}
             </Text>

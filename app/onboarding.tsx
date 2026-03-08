@@ -11,9 +11,7 @@ import Animated, {
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,33 +30,37 @@ export default function OnboardingScreen() {
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
   // Subtle float for the crescent
-  const crescentY = useSharedValue(20);
+  // Change this:
+  const crescentY = useSharedValue(26); // Start at 0 for offset
+  const crescentSway = useSharedValue(0);
+
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (!ready) return;
-    crescentY.value = withDelay(
-      1200,
-      withRepeat(
-        withSequence(
-          withTiming(20, {
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          withTiming(26, {
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-          }),
-        ),
-        -1,
-        true,
-      ),
+
+    // Vertical Float (Up and Down)
+    crescentY.value = withRepeat(
+      withTiming(20, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
     );
+
+    // Horizontal Sway (Left and Right)
+    crescentSway.value = withRepeat(
+      withTiming(5, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+
+    // Subtle Pulse (Breathing effect)
   }, [ready]);
 
   const crescentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: crescentY.value }],
-    scale: crescentY.value,
-    rotateZ: 20,
+    transform: [
+      { translateY: crescentY.value },
+      { translateX: crescentSway.value },
+      { rotateZ: "15deg" }, // Keep a slight tilt for character
+    ],
   }));
 
   const completeOnboarding = useCallback(async () => {
@@ -97,7 +99,7 @@ export default function OnboardingScreen() {
         <Animated.View
           entering={FadeInUp.delay(300)
             .duration(800)
-            .easing(Easing.inOut(Easing.cubic))}
+            .easing(Easing.inOut(Easing.sin))}
           style={[styles.logoPiece, {}]}
         >
           <LogoDome width={logoWidth} height={domeHeight} />
@@ -108,7 +110,7 @@ export default function OnboardingScreen() {
           <Animated.View
             entering={FadeInUp.delay(800)
               .duration(1000)
-              .easing(Easing.inOut(Easing.cubic))}
+              .easing(Easing.inOut(Easing.sin))}
             key={0}
             style={[
               styles.crescentOverlay,
@@ -143,7 +145,7 @@ export default function OnboardingScreen() {
         <Animated.View
           entering={FadeInDown.delay(600)
             .duration(700)
-            .easing(Easing.inOut(Easing.cubic))}
+            .easing(Easing.inOut(Easing.sin))}
           style={[styles.logoPiece, { marginTop: -8 }]}
         >
           <LogoBase width={baseWidth} height={baseHeight} />
@@ -154,7 +156,7 @@ export default function OnboardingScreen() {
       <Animated.Text
         entering={FadeInDown.delay(1100)
           .duration(1000)
-          .easing(Easing.inOut(Easing.cubic))}
+          .easing(Easing.inOut(Easing.sin))}
         style={[styles.appName, { color: colors.text }]}
       >
         {t("app_name")}
@@ -162,7 +164,9 @@ export default function OnboardingScreen() {
 
       {/* Subtitle */}
       <Animated.Text
-        entering={FadeIn.delay(1400).duration(1000)}
+        entering={FadeIn.delay(1400)
+          .duration(1000)
+          .easing(Easing.inOut(Easing.sin))}
         style={[styles.subtitle, { color: colors.textSecondary }]}
       >
         {t("onboarding.subtitle")}
@@ -171,7 +175,7 @@ export default function OnboardingScreen() {
       <Animated.View
         entering={FadeInDown.delay(1800)
           .duration(1000)
-          .easing(Easing.out(Easing.cubic))}
+          .easing(Easing.inOut(Easing.sin))}
         style={[
           {
             width: "100%",
@@ -197,7 +201,7 @@ export default function OnboardingScreen() {
         <Animated.View
           entering={FadeInDown.delay(1800)
             .duration(1000)
-            .easing(Easing.out(Easing.cubic))}
+            .easing(Easing.inOut(Easing.sin))}
           style={[
             styles.buttonWrapper,
             { paddingBottom: Math.max(insets.bottom, Spacing.xl) },

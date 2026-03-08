@@ -1,4 +1,5 @@
 import { AddToScheduleSheet } from "@/components/AddToScheduleSheet";
+import { BackButton } from "@/components/ui/backButton";
 import { Badge } from "@/components/ui/Badge";
 import { CATEGORIES } from "@/constants/categories";
 import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
@@ -98,21 +99,7 @@ export default function EventDetails() {
         }}
       />
       <StatusBar barStyle="light-content" />
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          right: 10,
-          top: 10 + insets.top,
-          zIndex: 1,
-          backgroundColor: theme.tint + "60",
-          padding: 10,
-          borderRadius: BorderRadius.md,
-        }}
-        activeOpacity={0.7}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
+      <BackButton />
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         bounces={false}

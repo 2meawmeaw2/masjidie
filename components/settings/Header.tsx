@@ -1,18 +1,12 @@
-import { Ionicons } from "@expo/vector-icons"; // Standard in Expo
 import { useRouter } from "expo-router";
 import React from "react";
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    ViewStyle,
-} from "react-native";
+import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import Animated, { Easing, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import { BackButton } from "../ui/backButton";
 
 interface ScreenHeaderProps {
   title: string;
@@ -54,9 +48,14 @@ export default function ScreenHeader({
         containerStyle,
       ]}
     >
+      <BackButton direction="right" left={10} backgroundOpacityHex="99" />
+
       <View style={styles.content}>
         {/* Right Side (Actions) */}
+        {/*
+        Icon prop for each section
         <View style={styles.sideContainer}>{rightElement}</View>
+        */}
 
         {/* Center/Title */}
         <Text numberOfLines={1} style={[styles.title, { color: colors.tint }]}>
@@ -64,21 +63,6 @@ export default function ScreenHeader({
         </Text>
 
         {/* Left Side (Back Button) */}
-        <View style={styles.sideContainer}>
-          {showBackButton && (
-            <TouchableOpacity
-              onPress={handleBack}
-              activeOpacity={0.7}
-              style={[
-                styles.backButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              {/* Note: Using arrow-forward because of RTL context */}
-              <Ionicons name="chevron-forward" size={24} color={colors.text} />
-            </TouchableOpacity>
-          )}
-        </View>
       </View>
     </Animated.View>
   );
@@ -92,7 +76,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     height: 50,
   },
   title: {

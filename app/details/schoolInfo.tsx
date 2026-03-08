@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/ui/backButton";
 import {
   BorderRadius,
   Colors,
@@ -23,8 +24,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, {
   FadeInDown,
@@ -103,21 +103,8 @@ export default function SchoolDetails() {
         }}
       />
       <StatusBar barStyle="light-content" />
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          right: 10,
-          top: 10 + insets.top,
-          zIndex: 1,
-          backgroundColor: theme.tint + "60",
-          padding: 10,
-          borderRadius: BorderRadius.md,
-        }}
-        activeOpacity={0.7}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
+      <BackButton />
+
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         bounces={false}

@@ -1,4 +1,5 @@
 import { ActivityCard } from "@/components/ActivityCard";
+import { BackButton } from "@/components/ui/backButton";
 import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { handleOpenMaps } from "@/lib/location";
@@ -58,12 +59,13 @@ export default function MosqueDetails() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: "",
+          headerShown: false,
           headerTransparent: true,
           headerTintColor: "#fff",
         }}
       />
       <StatusBar barStyle="light-content" />
+      <BackButton />
 
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}

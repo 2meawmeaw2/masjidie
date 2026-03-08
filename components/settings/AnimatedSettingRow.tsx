@@ -1,3 +1,4 @@
+import { SmoothAnimations } from "@/constants/animations";
 import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +8,7 @@ import Animated, {
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -41,23 +42,28 @@ export default function AnimatedSettingRow({
 
   const handlePressIn = () => {
     if (onPress) {
-      scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+      // withTiming provides a predictable, smooth transition
+      scale.value = withTiming(0.97, {
+        duration: 150,
+        easing: SmoothAnimations.interactive,
+      });
     }
   };
 
   const handlePressOut = () => {
     if (onPress) {
-      scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+      scale.value = withTiming(1, {
+        duration: 150,
+        easing: SmoothAnimations.interactive,
+      });
     }
   };
 
   return (
     <Animated.View
       entering={FadeInDown.delay(index * 80)
-        .springify()
-        .mass(0.8)
-        .damping(15)
-        .stiffness(150)}
+        .duration(400) // Replaced .springify() with a fixed duration
+        .easing(SmoothAnimations.entering)}
     >
       <AnimatedPressable
         style={[
