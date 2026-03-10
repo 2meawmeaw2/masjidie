@@ -95,7 +95,7 @@ export const ActivityIndicator = ({
             colors={
               colorsArray.length > 0
                 ? colorsArray
-                : [theme.tint, theme.tint, theme.text, theme.text]
+                : [theme.tint, theme.tint, theme.tint, theme.tint]
             }
           />
           <BlurMask blur={5} style="solid" />
