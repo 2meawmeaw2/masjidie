@@ -1,25 +1,24 @@
 import { Colors } from "@/constants/theme";
 import {
-    BlurMask,
-    Canvas,
-    Color,
-    Path,
-    Skia,
-    SweepGradient,
-    vec,
+  BlurMask,
+  Canvas,
+  Color,
+  Path,
+  Skia,
+  SweepGradient,
+  vec,
 } from "@shopify/react-native-skia";
 import { useEffect, useMemo } from "react";
-import { useColorScheme } from "react-native";
 import Animated, {
-    Easing,
-    FadeIn,
-    FadeOut,
-    interpolate,
-    useAnimatedStyle,
-    useDerivedValue,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  Easing,
+  FadeIn,
+  FadeOut,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
 
 type ActivityIndicatorProps = {
@@ -33,8 +32,7 @@ export const ActivityIndicator = ({
   stroke = 10,
   colorsArray = [],
 }: ActivityIndicatorProps) => {
-  const colorScheme = useColorScheme() ?? "light";
-  const theme = Colors[colorScheme];
+  const theme = Colors["dark"];
   const strokeWidth = stroke;
   const radius = (size - strokeWidth) / 2;
   const canvasSize = size + 30;
@@ -97,7 +95,7 @@ export const ActivityIndicator = ({
             colors={
               colorsArray.length > 0
                 ? colorsArray
-                : [theme.tint, theme.tint, theme.tint, theme.tint]
+                : [theme.tint, theme.tint, theme.text, theme.text]
             }
           />
           <BlurMask blur={5} style="solid" />

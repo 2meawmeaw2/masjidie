@@ -11,12 +11,11 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Linking,
-  Pressable,
   ScrollView,
   Share,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import Animated, { Easing, FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -92,16 +91,7 @@ export default function ProfileScreen() {
           {t("settings.title")}
         </Text>
       </Animated.View>
-      <Animated.View
-        entering={FadeInDown.duration(300).easing(Easing.inOut(Easing.ease))}
-        style={styles.headerContainer}
-      >
-        <Pressable onPress={showOnboarding}>
-          <Text style={[styles.header, { color: colors.tint }]}>
-            {t("settings.title")}ssssss
-          </Text>
-        </Pressable>
-      </Animated.View>
+
       {/* ─── عام (General) ─── */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>

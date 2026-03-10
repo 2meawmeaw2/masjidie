@@ -71,14 +71,16 @@ function RootLayoutContent() {
   useEffect(() => {
     if (loaded && onboardingDone !== null) {
       SplashScreen.hideAsync();
-      initializeAlarms();
-      initialize();
-      // Hydrate schedule store (also reschedules event notifications)
-      useScheduleStore.getState().hydrate();
-      // Register background task for periodic notification rescheduling
-      registerBackgroundNotificationTask();
 
-      if (!onboardingDone) {
+      if (onboardingDone) {
+        // Only request permissions and initialize stores after onboarding is complete
+        initializeAlarms();
+        initialize();
+        // Hydrate schedule store (also reschedules event notifications)
+        useScheduleStore.getState().hydrate();
+        // Register background task for periodic notification rescheduling
+        registerBackgroundNotificationTask();
+      } else {
         router.replace("/onboarding");
       }
     }

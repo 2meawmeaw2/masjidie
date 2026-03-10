@@ -1,12 +1,6 @@
 import LocationIcon from "@/assets/icons/location.svg";
 import { Mosque } from "@/constants/mockData";
-import {
-  BorderRadius,
-  Colors,
-  Fonts,
-  Shadows,
-  Spacing,
-} from "@/constants/theme";
+import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useBookmarksStore } from "@/lib/stores/bookmarksStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,7 +8,14 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -70,8 +71,7 @@ export const MosqueCard = React.memo(function MosqueCard({
       onPressOut={handlePressOut}
       style={[
         styles.card,
-        { backgroundColor: theme.card },
-        isDark ? Shadows.dark : Shadows.light,
+        { backgroundColor: theme.card, elevation: 2, shadowColor: theme.tint },
         animatedStyle,
       ]}
     >

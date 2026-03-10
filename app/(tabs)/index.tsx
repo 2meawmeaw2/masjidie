@@ -1,6 +1,8 @@
 import Logo from "@/assets/logo.svg";
 import { ExploreListFooter } from "@/components/ExploreListFooter";
 import { MosqueCard } from "@/components/MosqueCard";
+import { ActivityIndicator } from "@/components/ui/activityIndicator";
+import { SmoothAnimations } from "@/constants/animations";
 import {
   BorderRadius,
   Colors,
@@ -31,7 +33,6 @@ import { useTranslation } from "react-i18next";
 import {
   FlatList,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -43,24 +44,24 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
-  FadeInLeft,
   FadeInUp,
   FadeOut,
-  FadeOutLeft,
   LinearTransition,
   SlideInRight,
   SlideOutRight,
-  ZoomIn,
-  ZoomOut,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withTiming,
+  ZoomIn,
+  ZoomOut
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ActivityIndicator } from "@/components/ui/activityIndicator";
-import { AmbientBackground } from "@/components/ui/ambientBG";
+// ── Animated wrapper (must live at module scope) ────
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 // ── Easing presets ──────────────────────────────────
 const EASE_OUT = Easing.out(Easing.cubic);
@@ -162,7 +163,6 @@ export default function HomeScreen() {
   const theme = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const [keyboardOpened, setKeyboardOpened] = useState(false);
 
   // ── Filter state ────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,6 +207,30 @@ export default function HomeScreen() {
   const filterBtnScale = useSharedValue(1);
   const filterBtnStyle = useAnimatedStyle(() => ({
     transform: [{ scale: filterBtnScale.value }],
+  }));
+
+  // ── Scroll-driven background animation ──────────
+  const SCROLL_THRESHOLD = 50;
+  const scrollY = useSharedValue(0);
+  const bgTranslateY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+      if (event.contentOffset.y > SCROLL_THRESHOLD) {
+        bgTranslateY.value = withTiming(-100, {
+          duration: 400,
+          easing: SmoothAnimations.layout,
+        });
+      } else {
+        bgTranslateY.value = withTiming(0, {
+          duration: 400,
+          easing: SmoothAnimations.layout,
+        });
+      }
+    },
+  });
+  const bgAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bgTranslateY.value }],
   }));
 
   const activeFilterCount =
@@ -334,11 +358,22 @@ export default function HomeScreen() {
   const renderHeader = () => (
     <View style={[styles.headerContainer, { marginTop: insets.top }]}>
       <View>
-        <Text style={[styles.appName, { color: theme.primary }]}>
-          {t("app_name")}
-        </Text>
+        <Text style={[styles.appName, { color: "#fff" }]}>{t("app_name")}</Text>
       </View>
-      <Logo width={60} height={60} />
+      <View
+        style={{
+          zIndex: 1,
+          backgroundColor: "#e7f2f2",
+          borderRadius: 10,
+          padding: 5,
+          width: 50,
+          height: 50,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Logo width={60} height={60} />
+      </View>
     </View>
   );
 
@@ -347,18 +382,48 @@ export default function HomeScreen() {
     NavigationBar.setPositionAsync("absolute");
   }, []);
 
-  const AnimatedTouchableOpacity =
-    Animated.createAnimatedComponent(TouchableOpacity);
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.background,
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            width: "100%",
+            height: 280,
+            zIndex: 0,
+            backgroundColor: "#00996d",
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            elevation: 8,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+          },
+          bgAnimStyle,
+        ]}
+      />
       <StatusBar
         backgroundColor="transparent"
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         translucent
       />
-
+      {/*
       <AmbientBackground />
-      <ScrollView
+       */}
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
       >
@@ -380,8 +445,6 @@ export default function HomeScreen() {
                 <Ionicons name="search" size={20} color={theme.icon} />
               </Animated.View>
               <TextInput
-                onBlur={() => setKeyboardOpened(false)}
-                onFocus={() => setKeyboardOpened(true)}
                 ref={searchInputRef}
                 placeholder={t("search.placeholder")}
                 placeholderTextColor={theme.icon}
@@ -398,43 +461,39 @@ export default function HomeScreen() {
                 </AnimatedTouchableOpacity>
               )}
             </Animated.View>
-            {!keyboardOpened && (
-              <Animated.View style={filterBtnStyle}>
-                <AnimatedTouchableOpacity
-                  entering={FadeInLeft}
-                  exiting={FadeOutLeft}
-                  onPress={openFilters}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.filterButton,
-                    {
-                      backgroundColor:
-                        activeFilterCount > 0 ? theme.primary : theme.card,
-                      borderColor:
-                        activeFilterCount > 0 ? theme.primary : theme.border,
-                    },
-                    !isDark && activeFilterCount === 0 && Shadows.light,
-                  ]}
-                >
-                  <Ionicons
-                    name="options-outline"
-                    size={20}
-                    color={activeFilterCount > 0 ? "#fff" : theme.icon}
-                  />
-                  {activeFilterCount > 0 && (
-                    <Animated.View
-                      entering={ZoomIn.duration(DURATION.base).easing(EASE_OUT)}
-                      exiting={ZoomOut.duration(DURATION.fast).easing(EASE_OUT)}
-                      style={styles.filterBadge}
-                    >
-                      <Text style={styles.filterBadgeText}>
-                        {activeFilterCount}
-                      </Text>
-                    </Animated.View>
-                  )}
-                </AnimatedTouchableOpacity>
-              </Animated.View>
-            )}
+            <Animated.View style={filterBtnStyle}>
+              <TouchableOpacity
+                onPress={openFilters}
+                activeOpacity={0.7}
+                style={[
+                  styles.filterButton,
+                  {
+                    backgroundColor:
+                      activeFilterCount > 0 ? theme.primary : theme.card,
+                    borderColor:
+                      activeFilterCount > 0 ? theme.primary : theme.border,
+                  },
+                  !isDark && activeFilterCount === 0 && Shadows.light,
+                ]}
+              >
+                <Ionicons
+                  name="options-outline"
+                  size={20}
+                  color={activeFilterCount > 0 ? "#fff" : theme.icon}
+                />
+                {activeFilterCount > 0 && (
+                  <Animated.View
+                    entering={ZoomIn.duration(DURATION.base).easing(EASE_OUT)}
+                    exiting={ZoomOut.duration(DURATION.fast).easing(EASE_OUT)}
+                    style={styles.filterBadge}
+                  >
+                    <Text style={styles.filterBadgeText}>
+                      {activeFilterCount}
+                    </Text>
+                  </Animated.View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           </View>
 
           {/* Active Filter Chips */}
@@ -447,7 +506,9 @@ export default function HomeScreen() {
               )}
               style={[
                 styles.activeFiltersRow,
-                { paddingHorizontal: Spacing.md },
+                {
+                  paddingHorizontal: Spacing.md,
+                },
               ]}
             >
               <FlatList
@@ -463,7 +524,8 @@ export default function HomeScreen() {
                       styles.clearAllChip,
                       {
                         borderColor: theme.error + "40",
-                        backgroundColor: theme.error + "10",
+                        marginTop: 6,
+                        backgroundColor: theme.error + "20",
                       },
                     ]}
                   >
@@ -489,10 +551,9 @@ export default function HomeScreen() {
                       style={[
                         styles.activeChip,
                         {
-                          backgroundColor: isDark
-                            ? theme.primary + "20"
-                            : theme.primary + "10",
-                          borderColor: theme.primary + "30",
+                          backgroundColor: theme.background,
+                          marginTop: 6,
+                          borderColor: "white" + "20",
                         },
                       ]}
                     >
@@ -517,11 +578,7 @@ export default function HomeScreen() {
         {/* Mosque List */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              stroke={8}
-              size={40}
-              colorsArray={[theme.tint, theme.text, theme.tint, theme.text]}
-            />
+            <ActivityIndicator stroke={8} size={40} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
               {t("explore.loading")}
             </Text>
@@ -605,7 +662,7 @@ export default function HomeScreen() {
             }
           />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
       {/* ── Bottom Sheet ──────────────────────────── */}
       <Portal>
         <BottomSheet
@@ -935,7 +992,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    position: "relative",
   },
   headerWrapper: {
     gap: Spacing.sm,

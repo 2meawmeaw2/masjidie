@@ -20,7 +20,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
+import { initializeAlarms } from "@/lib/alarms";
+import { registerBackgroundNotificationTask } from "@/lib/backgroundNotificationTask";
 import { getCurrentLocation } from "@/lib/location";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { useScheduleStore } from "@/lib/stores/scheduleStore";
 import { LocationData, saveLocation } from "@/lib/storage";
 
 export default function LocationPermissionScreen() {
@@ -29,6 +33,14 @@ export default function LocationPermissionScreen() {
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
+
+  /** Run deferred app initialization (alarms, auth, schedule, background tasks) */
+  const runDeferredInit = async () => {
+    await initializeAlarms();
+    useAuthStore.getState().initialize();
+    useScheduleStore.getState().hydrate();
+    registerBackgroundNotificationTask();
+  };
 
   const handleEnable = async () => {
     setLoading(true);
@@ -58,11 +70,13 @@ export default function LocationPermissionScreen() {
       console.warn("Location permission error:", error);
     } finally {
       setLoading(false);
+      await runDeferredInit();
       router.replace("/(tabs)");
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    await runDeferredInit();
     router.replace("/(tabs)");
   };
 

@@ -15,7 +15,7 @@ import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
 import { useScheduleStore } from "@/lib/stores/scheduleStore";
 import { ScheduledEvent } from "@/lib/types/schedule";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -147,7 +147,7 @@ export default function ScheduleScreen() {
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: "events", label: t("bookmarks.events"), icon: "calendar-outline" },
-    { key: "mosques", label: t("bookmarks.mosques"), icon: "business-outline" },
+    { key: "mosques", label: t("bookmarks.mosques"), icon: "mosque" },
     { key: "schools", label: t("bookmarks.schools"), icon: "school-outline" },
   ];
 
@@ -191,8 +191,8 @@ export default function ScheduleScreen() {
           },
         ]}
       >
-        <Ionicons
-          name="business-outline"
+        <MaterialCommunityIcons
+          name="mosque"
           size={48}
           color={theme.primary + "70"}
         />
@@ -375,11 +375,19 @@ export default function ScheduleScreen() {
                 ],
               ]}
             >
-              <Ionicons
-                name={tab.icon as any}
-                size={16}
-                color={isActive ? theme.primary : theme.textSecondary}
-              />
+              {tab.icon === "mosque" ? (
+                <MaterialCommunityIcons
+                  name="mosque"
+                  size={16}
+                  color={isActive ? theme.primary : theme.textSecondary}
+                />
+              ) : (
+                <Ionicons
+                  name={tab.icon as any}
+                  size={16}
+                  color={isActive ? theme.primary : theme.textSecondary}
+                />
+              )}
               <Text
                 style={[
                   styles.segmentLabel,

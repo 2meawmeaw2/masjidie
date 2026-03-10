@@ -6,7 +6,7 @@ import { useEventsStore } from "@/lib/stores/eventsStore";
 import { useIslamicSchoolsStore } from "@/lib/stores/islamicSchoolsStore";
 import { useMosquesStore } from "@/lib/stores/mosquesStore";
 import { useRequestsStore } from "@/lib/stores/requestsStore";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
@@ -62,7 +62,9 @@ export default function AdminDashboard() {
   interface NavItem {
     label: string;
     description: string;
-    icon: keyof typeof Ionicons.glyphMap;
+    icon:
+      | keyof typeof Ionicons.glyphMap
+      | keyof typeof MaterialCommunityIcons.glyphMap;
     route: any;
     color: string;
     badgeCount: number;
@@ -103,7 +105,7 @@ export default function AdminDashboard() {
       {
         label: "معلومات المسجد",
         description: "تعديل التفاصيل، العنوان والخدمات",
-        icon: "business" as const,
+        icon: "mosque" as const,
         route: "/admin/mosque" as const,
         color: colors.primary,
         badgeCount: 0,
@@ -195,7 +197,11 @@ export default function AdminDashboard() {
               { backgroundColor: colors.primary + "15" },
             ]}
           >
-            <Ionicons name="business" size={22} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="mosque"
+              size={22}
+              color={colors.primary}
+            />
           </View>
           <View style={styles.mosqueInfo}>
             <Text style={[styles.mosqueLabel, { color: colors.textSecondary }]}>
@@ -262,7 +268,19 @@ export default function AdminDashboard() {
                   { backgroundColor: item.color + "15" },
                 ]}
               >
-                <Ionicons name={item.icon} size={24} color={item.color} />
+                {item.icon === "mosque" ? (
+                  <MaterialCommunityIcons
+                    name="mosque"
+                    size={24}
+                    color={item.color}
+                  />
+                ) : (
+                  <Ionicons
+                    name={item.icon as keyof typeof Ionicons.glyphMap}
+                    size={24}
+                    color={item.color}
+                  />
+                )}
               </View>
               {item.badgeCount > 0 && (
                 <View style={styles.navBadge}>

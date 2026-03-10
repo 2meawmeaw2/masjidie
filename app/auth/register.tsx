@@ -7,7 +7,7 @@ import {
 } from "@/lib/stores/mosquesStore";
 import { useRequestsStore } from "@/lib/stores/requestsStore";
 import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -359,7 +359,7 @@ export default function RegisterScreen() {
           <View
             style={[styles.iconCircle, { backgroundColor: colors.primary }]}
           >
-            <Ionicons name="business" size={32} color="#fff" />
+            <MaterialCommunityIcons name="mosque" size={32} color="#fff" />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>تسجيل جديد</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

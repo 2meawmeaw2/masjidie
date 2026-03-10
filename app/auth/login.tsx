@@ -1,20 +1,20 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function LoginScreen() {
   const { theme } = useTheme();
@@ -88,7 +88,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
-                placeholder="admin@masjidie.test"
+                placeholder="you@masjidie.com"
                 placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
@@ -144,7 +144,12 @@ export default function LoginScreen() {
 
           {/* Error */}
           {error ? (
-            <View style={[styles.errorRow, { backgroundColor: colors.error + "15" }]}>
+            <View
+              style={[
+                styles.errorRow,
+                { backgroundColor: colors.error + "15" },
+              ]}
+            >
               <Ionicons name="alert-circle" size={16} color={colors.error} />
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {error}
@@ -179,7 +184,9 @@ export default function LoginScreen() {
             onPress={() => router.push("/auth/register")}
             activeOpacity={0.7}
           >
-            <Text style={[styles.registerText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.registerText, { color: colors.textSecondary }]}
+            >
               {t("auth.noAccount")}{" "}
             </Text>
             <Text style={[styles.registerText, { color: colors.primary }]}>
