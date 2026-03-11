@@ -17,11 +17,10 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -98,7 +97,6 @@ export default function EventDetails() {
           headerShown: false,
         }}
       />
-      <StatusBar barStyle="light-content" />
       <BackButton />
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}

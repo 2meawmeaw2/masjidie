@@ -234,6 +234,35 @@ export async function resolveGoogleMapsLink(shortUrl: string): Promise<string> {
   }
 }
 
+/**
+ * Forward-geocodes a state/wilaya name via Nominatim to get its center coordinates.
+ * Used to obtain state-level coordinates for prayer time calculations.
+ * @returns { lat, lon } of the state center, or null on failure
+ */
+export async function fetchStateCoordinates(
+  stateName: string,
+): Promise<{ lat: string; lon: string } | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(stateName)}&format=json&limit=1`,
+      {
+        headers: { "User-Agent": "MasjidieApp/1.0" },
+      },
+    );
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return { lat: data[0].lat, lon: data[0].lon };
+    }
+    return null;
+  } catch (error) {
+    console.warn("Error fetching state coordinates:", error);
+    return null;
+  }
+}
+
 export const handleOpenMaps = async (mosque: Mosque) => {
   // Open the unique Google Maps link for the mosque directly.
   // This uses Universal Links (Android) or standard URL handling (iOS) to open the Maps app if installed.

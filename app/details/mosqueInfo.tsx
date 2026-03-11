@@ -13,11 +13,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -64,7 +63,6 @@ export default function MosqueDetails() {
           headerTintColor: "#fff",
         }}
       />
-      <StatusBar barStyle="light-content" />
       <BackButton />
 
       <ScrollView

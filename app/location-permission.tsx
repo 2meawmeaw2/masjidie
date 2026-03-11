@@ -22,7 +22,7 @@ import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import { initializeAlarms } from "@/lib/alarms";
 import { registerBackgroundNotificationTask } from "@/lib/backgroundNotificationTask";
-import { getCurrentLocation } from "@/lib/location";
+import { fetchStateCoordinates, getCurrentLocation } from "@/lib/location";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { useScheduleStore } from "@/lib/stores/scheduleStore";
 import { LocationData, saveLocation } from "@/lib/storage";
@@ -64,6 +64,16 @@ export default function LocationPermissionScreen() {
           lon: String(longitude),
           display_name: geo.display_name || "",
         };
+
+        // Fetch state center coordinates for prayer times
+        if (locationData.state) {
+          const stateCoords = await fetchStateCoordinates(locationData.state);
+          if (stateCoords) {
+            locationData.stateLat = stateCoords.lat;
+            locationData.stateLon = stateCoords.lon;
+          }
+        }
+
         await saveLocation(locationData);
       }
     } catch (error) {

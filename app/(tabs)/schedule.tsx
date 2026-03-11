@@ -1,5 +1,6 @@
 import { MosqueCard } from "@/components/MosqueCard";
 import { ScheduleEventCard } from "@/components/ScheduleEventCard";
+import { SmoothAnimations } from "@/constants/animations";
 import { IslamicSchool, Mosque } from "@/constants/mockData";
 import {
   BorderRadius,
@@ -30,16 +31,188 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   FlatList,
+  LayoutChangeEvent,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TabKey = "events" | "mosques" | "schools";
 
+const SPRING_CONFIG = {
+  damping: 20,
+  stiffness: 200,
+  mass: 0.6,
+};
+
+// ── Animated Tab Item ──────────────────────────────────────────────────────────
+function AnimatedTabItem({
+  tab,
+  isActive,
+  theme,
+  onPress,
+  count,
+}: {
+  tab: { key: TabKey; label: string; icon: string };
+  isActive: boolean;
+  theme: any;
+  onPress: () => void;
+  count: number;
+}) {
+  const iconStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          scale: withTiming(isActive ? 1.08 : 0.9, {
+            duration: 2000,
+            easing: SmoothAnimations.entering,
+          }),
+        },
+      ],
+    };
+  });
+
+  const labelStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isActive ? 1 : 0.55, {
+        duration: 2000,
+        easing: SmoothAnimations.entering,
+      }),
+      color: withTiming(isActive ? "black" : "white", {
+        duration: 2000,
+        easing: SmoothAnimations.entering,
+      }),
+      transform: [
+        {
+          translateY: withTiming(isActive ? 0 : 1, {
+            duration: 2000,
+            easing: SmoothAnimations.entering,
+          }),
+        },
+      ],
+    };
+  });
+
+  const badgeStyle = useAnimatedStyle(() => {
+    return {
+      opacity: count > 0 ? 1 : 0,
+      transform: [
+        {
+          scale: withTiming(isActive ? 1 : 0.85, {
+            duration: 2000,
+            easing: SmoothAnimations.entering,
+          }),
+        },
+      ],
+      backgroundColor: withTiming(
+        isActive ? theme.primary + "20" : "transparent",
+        { duration: 2000, easing: SmoothAnimations.entering },
+      ),
+    };
+  });
+
+  const badgeTextStyle = useAnimatedStyle(() => {
+    return {
+      color: withTiming(isActive ? theme.primary : theme.textSecondary, {
+        duration: 2000,
+        easing: SmoothAnimations.entering,
+      }),
+    };
+  });
+
+  // We can't pass animated color directly to Ionicons, so we render two icons
+  // and crossfade between them — clean and reliable.
+  const inactiveIconStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isActive ? 0 : 1, {
+        duration: 2000,
+        easing: SmoothAnimations.entering,
+      }),
+      position: "absolute",
+    };
+  });
+
+  const activeIconStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(isActive ? 1 : 0, {
+        duration: 2000,
+        easing: SmoothAnimations.entering,
+      }),
+      position: "absolute",
+    };
+  });
+
+  return (
+    <Pressable style={styles.segmentTab} onPress={onPress}>
+      {/* Icon crossfade */}
+      <Animated.View style={[{ width: 16, height: 16 }, iconStyle]}>
+        <Animated.View style={inactiveIconStyle}>
+          {tab.icon === "mosque" ? (
+            <MaterialCommunityIcons
+              name="mosque"
+              size={16}
+              color={theme.textSecondary}
+            />
+          ) : (
+            <Ionicons
+              name={tab.icon as any}
+              size={16}
+              color={theme.textSecondary}
+            />
+          )}
+        </Animated.View>
+        <Animated.View style={activeIconStyle}>
+          {tab.icon === "mosque" ? (
+            <MaterialCommunityIcons
+              name="mosque"
+              size={16}
+              color={theme.primary}
+            />
+          ) : (
+            <Ionicons name={tab.icon as any} size={16} color={theme.primary} />
+          )}
+        </Animated.View>
+      </Animated.View>
+
+      {/* Label */}
+      <Animated.Text
+        style={[
+          styles.segmentLabel,
+          { fontFamily: Fonts.rsans, color: "white" },
+          labelStyle,
+        ]}
+      >
+        {tab.label}
+      </Animated.Text>
+
+      {/* Badge */}
+      {count > 0 && (
+        <Animated.View
+          style={[
+            styles.segmentBadge,
+            { borderRadius: BorderRadius.sm },
+            badgeStyle,
+          ]}
+        >
+          <Animated.Text style={[styles.segmentBadgeText, badgeTextStyle]}>
+            {count}
+          </Animated.Text>
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+// ── Main Screen ────────────────────────────────────────────────────────────────
 export default function ScheduleScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
@@ -48,7 +221,18 @@ export default function ScheduleScreen() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const tabKeys: TabKey[] = ["events", "mosques", "schools"];
   const [activeTab, setActiveTab] = useState<TabKey>("events");
+
+  // Reanimated shared values for the pill
+  const activeIndex = useSharedValue(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  const handleTabPress = (tab: TabKey, index: number) => {
+    setActiveTab(tab);
+    activeIndex.value = withSpring(index, SPRING_CONFIG);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   // ── Stores ─────────────────────────────────
   const { events, isHydrated, hydrate, removeEvent, getSortedEvents } =
@@ -66,7 +250,6 @@ export default function ScheduleScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── User location for distance calc ────────
   const userLocationRef = useRef<{
     latitude: number;
     longitude: number;
@@ -80,7 +263,6 @@ export default function ScheduleScreen() {
     });
   }, []);
 
-  // Hydrate on mount
   useEffect(() => {
     if (!isHydrated) hydrate();
     if (!bookmarksHydrated) hydrateBookmarks();
@@ -89,6 +271,7 @@ export default function ScheduleScreen() {
   }, []);
 
   const sorted = getSortedEvents();
+
   const savedMosques = useMemo(() => {
     const filtered = mosques.filter((m) => savedMosqueIds.includes(m.id));
     const loc = userLocationRef.current;
@@ -122,7 +305,23 @@ export default function ScheduleScreen() {
     setRefreshing(false);
   }, [hydrate, hydrateBookmarks, fetchMosques, fetchSchools]);
 
-  // ── Loading state ────────────────────────────
+  // ── Sliding pill animated style ─────────────────────────────────────────────
+  // Must be before any early returns to obey Rules of Hooks
+  const TAB_COUNT = 3;
+  const PADDING_H = 4;
+  const GAP = 4;
+
+  const pillStyle = useAnimatedStyle(() => {
+    if (containerWidth === 0) return {};
+    const availableWidth = containerWidth - PADDING_H * 2;
+    const tabWidth = (availableWidth - GAP * (TAB_COUNT - 1)) / TAB_COUNT;
+    const translateX = -activeIndex.value * (tabWidth + GAP);
+    return {
+      width: tabWidth,
+      transform: [{ translateX: withSpring(translateX, SPRING_CONFIG) }],
+    };
+  });
+
   if (!isHydrated || !bookmarksHydrated) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
@@ -131,14 +330,12 @@ export default function ScheduleScreen() {
     );
   }
 
-  // ── Today's date in Arabic ───────────────────
   const todayLabel = new Intl.DateTimeFormat("ar-DZ", {
     weekday: "long",
     day: "numeric",
     month: "long",
   }).format(new Date());
 
-  // ── Tab counts ─────────────────────────────
   const tabCounts: Record<TabKey, number> = {
     events: events.length,
     mosques: savedMosqueIds.length,
@@ -151,7 +348,7 @@ export default function ScheduleScreen() {
     { key: "schools", label: t("bookmarks.schools"), icon: "school-outline" },
   ];
 
-  // ── Empty states ───────────────────────────
+  // ── Empty states ───────────────────────────────────────────────────────────
   const renderEventsEmpty = () => (
     <View style={styles.emptyContainer}>
       <View
@@ -299,7 +496,6 @@ export default function ScheduleScreen() {
     </Pressable>
   );
 
-  // ── Refresh control ────────────────────────
   const refreshControl = (
     <RefreshControl
       refreshing={refreshing}
@@ -316,119 +512,72 @@ export default function ScheduleScreen() {
         { backgroundColor: theme.background, paddingTop: insets.top },
       ]}
     >
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            width: "100%",
+            height: 200,
+            zIndex: 0,
+            backgroundColor: "#00996d",
+            borderBottomLeftRadius: 20,
+            borderBottomRightRadius: 20,
+            elevation: 8,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+          },
+        ]}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <Text style={[styles.headerTitle, { color: theme.tint }]}>
+          <Text style={[styles.headerTitle, { color: "white" }]}>
             {t("schedule.mySchedule")}
           </Text>
-          <Text style={[styles.headerDate, { color: theme.tint + "70" }]}>
+          <Text style={[styles.headerDate, { color: "#ffffff90" }]}>
             {todayLabel}
           </Text>
         </View>
-        <View
-          style={[
-            styles.headerBadge,
-            {
-              backgroundColor: isDark
-                ? theme.primary + "20"
-                : theme.primary + "12",
-            },
-          ]}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={26}
-            color={theme.primary + "70"}
-          />
+        <View style={[styles.headerBadge, { backgroundColor: "#ffffff50" }]}>
+          <Ionicons name="calendar-outline" size={26} color="white" />
         </View>
       </View>
 
-      {/* Segment Tabs */}
+      {/* ── Animated Segment Tabs ── */}
       <View
-        style={[
-          styles.segmentContainer,
-          {
-            backgroundColor: isDark
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(0,0,0,0.04)",
-          },
-        ]}
+        style={[styles.segmentContainer, { backgroundColor: "#ffffff70" }]}
+        onLayout={(e: LayoutChangeEvent) =>
+          setContainerWidth(e.nativeEvent.layout.width)
+        }
       >
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <Pressable
-              key={tab.key}
-              onPress={() => {
-                setActiveTab(tab.key);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={[
-                styles.segmentTab,
-                isActive && [
-                  styles.segmentTabActive,
-                  {
-                    backgroundColor: theme.card,
-                  },
-                  isDark ? Shadows.dark : Shadows.light,
-                ],
-              ]}
-            >
-              {tab.icon === "mosque" ? (
-                <MaterialCommunityIcons
-                  name="mosque"
-                  size={16}
-                  color={isActive ? theme.primary : theme.textSecondary}
-                />
-              ) : (
-                <Ionicons
-                  name={tab.icon as any}
-                  size={16}
-                  color={isActive ? theme.primary : theme.textSecondary}
-                />
-              )}
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  {
-                    color: isActive ? theme.primary : theme.textSecondary,
-                    fontFamily: isActive ? Fonts.bdsans : Fonts.rsans,
-                  },
-                ]}
-              >
-                {tab.label}
-              </Text>
-              {tabCounts[tab.key] > 0 && (
-                <View
-                  style={[
-                    styles.segmentBadge,
-                    {
-                      backgroundColor: isActive
-                        ? theme.primary + "20"
-                        : "transparent",
-                      borderRadius: BorderRadius.sm,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.segmentBadgeText,
-                      {
-                        color: isActive ? theme.primary : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    {tabCounts[tab.key]}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
+        {/* Sliding white pill — rendered behind the tab items */}
+        <Animated.View
+          style={[
+            styles.pill,
+            isDark ? Shadows.dark : Shadows.light,
+            pillStyle,
+          ]}
+        />
+
+        {tabs.map((tab, index) => (
+          <AnimatedTabItem
+            key={tab.key}
+            tab={tab}
+            isActive={activeTab === tab.key}
+            theme={theme}
+            count={tabCounts[tab.key]}
+            onPress={() => handleTabPress(tab.key, index)}
+          />
+        ))}
       </View>
 
-      {/* Content based on active tab */}
+      {/* Content */}
       {activeTab === "events" && (
         <FlatList
           data={sorted}
@@ -478,15 +627,10 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // ── Header ────────────────
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -495,18 +639,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  headerTextGroup: {
-    alignItems: "flex-start",
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: Fonts.bdsans,
-  },
-  headerDate: {
-    fontSize: 14,
-    fontFamily: Fonts.rsans,
-    marginTop: 2,
-  },
+  headerTextGroup: { alignItems: "flex-start" },
+  headerTitle: { fontSize: 28, fontFamily: Fonts.bdsans },
+  headerDate: { fontSize: 14, fontFamily: Fonts.rsans, marginTop: 2 },
   headerBadge: {
     borderRadius: BorderRadius.full,
     width: 56,
@@ -514,18 +649,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerCount: {
-    fontSize: 16,
-    fontFamily: Fonts.bdsans,
-  },
-  // ── Segment tabs ───────────
+
+  // ── Segment tabs ─────────────────────────────────────────────────────────────
   segmentContainer: {
     flexDirection: "row",
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    padding: 4,
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
     gap: 4,
+    // Needed so the absolute pill sits inside correctly
+    position: "relative",
+  },
+  // The white sliding pill — absolutely positioned, behind tab items via zIndex
+  pill: {
+    position: "absolute",
+    top: 8,
+    left: 4,
+    bottom: 8,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "white",
+    zIndex: 0,
   },
   segmentTab: {
     flex: 1,
@@ -535,33 +680,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: BorderRadius.md,
     gap: 6,
+    zIndex: 1, // sit above the pill
   },
-  segmentTabActive: {
-    // backgroundColor set dynamically
-  },
-  segmentLabel: {
-    fontSize: 13,
-  },
+  segmentLabel: { fontSize: 13 },
   segmentBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1,
     minWidth: 20,
     alignItems: "center",
   },
-  segmentBadgeText: {
-    fontSize: 11,
-    fontFamily: Fonts.mdsans,
-  },
-  // ── List ──────────────────
-  listContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 100,
-  },
-  listContentEmpty: {
-    flexGrow: 1,
-    justifyContent: "center",
-  },
-  // ── Empty state ───────────
+  segmentBadgeText: { fontSize: 11, fontFamily: Fonts.mdsans },
+
+  // ── List ──────────────────────────────────────────────────────────────────────
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: 100 },
+  listContentEmpty: { flexGrow: 1, justifyContent: "center" },
+
+  // ── Empty state ───────────────────────────────────────────────────────────────
   emptyContainer: {
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
@@ -575,39 +709,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: Spacing.sm,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bdsans,
-    textAlign: "center",
-  },
+  emptyTitle: { fontSize: 20, fontFamily: Fonts.bdsans, textAlign: "center" },
   emptySubtitle: {
     fontSize: 14,
     fontFamily: Fonts.rsans,
     textAlign: "center",
     lineHeight: 22,
   },
-  // ── School card ────────────
+
+  // ── School card ───────────────────────────────────────────────────────────────
   schoolCard: {
     flexDirection: "row",
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
     marginBottom: Spacing.md,
   },
-  schoolImage: {
-    width: 100,
-    height: 100,
-  },
+  schoolImage: { width: 100, height: 100 },
   schoolContent: {
     flex: 1,
     padding: Spacing.md,
     justifyContent: "center",
     gap: 4,
   },
-  schoolName: {
-    fontSize: 15,
-    fontFamily: Fonts.bdsans,
-    textAlign: "right",
-  },
+  schoolName: { fontSize: 15, fontFamily: Fonts.bdsans, textAlign: "right" },
   schoolLocationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -631,8 +755,5 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: BorderRadius.full,
   },
-  schoolProgramText: {
-    fontSize: 11,
-    fontFamily: Fonts.rsans,
-  },
+  schoolProgramText: { fontSize: 11, fontFamily: Fonts.rsans },
 });

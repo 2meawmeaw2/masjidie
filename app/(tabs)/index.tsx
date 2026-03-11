@@ -2,7 +2,7 @@ import Logo from "@/assets/logo.svg";
 import { ExploreListFooter } from "@/components/ExploreListFooter";
 import { MosqueCard } from "@/components/MosqueCard";
 import { ActivityIndicator } from "@/components/ui/activityIndicator";
-import { SmoothAnimations } from "@/constants/animations";
+import { AnimatedHeaderBackground } from "@/components/ui/AnimatedHeaderBackground";
 import {
   BorderRadius,
   Colors,
@@ -33,12 +33,11 @@ import { useTranslation } from "react-i18next";
 import {
   FlatList,
   Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, {
   Easing,
@@ -47,15 +46,17 @@ import Animated, {
   FadeInUp,
   FadeOut,
   LinearTransition,
+  runOnJS,
   SlideInRight,
   SlideOutRight,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withTiming,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -210,28 +211,23 @@ export default function HomeScreen() {
   }));
 
   // ── Scroll-driven background animation ──────────
-  const SCROLL_THRESHOLD = 50;
   const scrollY = useSharedValue(0);
-  const bgTranslateY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
-      if (event.contentOffset.y > SCROLL_THRESHOLD) {
-        bgTranslateY.value = withTiming(-100, {
-          duration: 400,
-          easing: SmoothAnimations.layout,
-        });
-      } else {
-        bgTranslateY.value = withTiming(0, {
-          duration: 400,
-          easing: SmoothAnimations.layout,
-        });
-      }
     },
   });
-  const bgAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: bgTranslateY.value }],
-  }));
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useAnimatedReaction(
+    () => scrollY.value > 50,
+    (scrolled, previous) => {
+      if (scrolled !== previous) {
+        runOnJS(setIsScrolled)(scrolled);
+      }
+    },
+  );
 
   const activeFilterCount =
     selectedCities.length + (selectedDistance !== "any" ? 1 : 0);
@@ -391,41 +387,14 @@ export default function HomeScreen() {
         },
       ]}
     >
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            width: "100%",
-            height: 280,
-            zIndex: 0,
-            backgroundColor: "#00996d",
-            borderBottomLeftRadius: 20,
-            borderBottomRightRadius: 20,
-            elevation: 8,
-            shadowColor: theme.primary,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-          },
-          bgAnimStyle,
-        ]}
-      />
-      <StatusBar
-        backgroundColor="transparent"
-        barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        translucent
-      />
-      {/*
-      <AmbientBackground />
-       */}
+      <AnimatedHeaderBackground scrollY={scrollY} />
+
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         {renderHeader()}
@@ -461,39 +430,39 @@ export default function HomeScreen() {
                 </AnimatedTouchableOpacity>
               )}
             </Animated.View>
-            <Animated.View style={filterBtnStyle}>
-              <TouchableOpacity
-                onPress={openFilters}
-                activeOpacity={0.7}
-                style={[
-                  styles.filterButton,
-                  {
-                    backgroundColor:
-                      activeFilterCount > 0 ? theme.primary : theme.card,
-                    borderColor:
-                      activeFilterCount > 0 ? theme.primary : theme.border,
-                  },
-                  !isDark && activeFilterCount === 0 && Shadows.light,
-                ]}
-              >
-                <Ionicons
-                  name="options-outline"
-                  size={20}
-                  color={activeFilterCount > 0 ? "#fff" : theme.icon}
-                />
-                {activeFilterCount > 0 && (
-                  <Animated.View
-                    entering={ZoomIn.duration(DURATION.base).easing(EASE_OUT)}
-                    exiting={ZoomOut.duration(DURATION.fast).easing(EASE_OUT)}
-                    style={styles.filterBadge}
-                  >
-                    <Text style={styles.filterBadgeText}>
-                      {activeFilterCount}
-                    </Text>
-                  </Animated.View>
-                )}
-              </TouchableOpacity>
-            </Animated.View>
+            <AnimatedTouchableOpacity
+              key={12}
+              onPress={openFilters}
+              activeOpacity={0.7}
+              style={[
+                filterBtnStyle,
+                styles.filterButton,
+                {
+                  backgroundColor:
+                    activeFilterCount > 0 ? theme.primary : theme.card,
+                  borderColor:
+                    activeFilterCount > 0 ? theme.primary : theme.border,
+                },
+                !isDark && activeFilterCount === 0 && Shadows.light,
+              ]}
+            >
+              <Ionicons
+                name="options-outline"
+                size={20}
+                color={activeFilterCount > 0 ? "#fff" : theme.icon}
+              />
+              {activeFilterCount > 0 && (
+                <Animated.View
+                  entering={ZoomIn.duration(DURATION.base).easing(EASE_OUT)}
+                  exiting={ZoomOut.duration(DURATION.fast).easing(EASE_OUT)}
+                  style={styles.filterBadge}
+                >
+                  <Text style={styles.filterBadgeText}>
+                    {activeFilterCount}
+                  </Text>
+                </Animated.View>
+              )}
+            </AnimatedTouchableOpacity>
           </View>
 
           {/* Active Filter Chips */}
@@ -997,6 +966,9 @@ const styles = StyleSheet.create({
   headerWrapper: {
     gap: Spacing.sm,
     paddingBottom: Spacing.sm,
+    zIndex: 1000,
+    elevation: 1000,
+    position: "relative",
   },
   headerContainer: {
     flexDirection: "row",

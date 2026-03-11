@@ -21,7 +21,6 @@ import {
   Linking,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   View
@@ -102,7 +101,6 @@ export default function SchoolDetails() {
           headerShown: false,
         }}
       />
-      <StatusBar barStyle="light-content" />
       <BackButton />
 
       <ScrollView

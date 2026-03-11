@@ -94,11 +94,19 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async () => {
     let lon = DEFAULT_LON;
     if (locRaw) {
       const loc = JSON.parse(locRaw);
-      const parsedLat = parseFloat(loc.lat);
-      const parsedLon = parseFloat(loc.lon);
-      if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-        lat = parsedLat;
-        lon = parsedLon;
+      // Prefer state-level coordinates for prayer calculations
+      const sLat = parseFloat(loc.stateLat);
+      const sLon = parseFloat(loc.stateLon);
+      if (!isNaN(sLat) && !isNaN(sLon)) {
+        lat = sLat;
+        lon = sLon;
+      } else {
+        const parsedLat = parseFloat(loc.lat);
+        const parsedLon = parseFloat(loc.lon);
+        if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
+          lat = parsedLat;
+          lon = parsedLon;
+        }
       }
     }
 

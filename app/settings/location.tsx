@@ -3,7 +3,7 @@ import ScreenHeader from "@/components/settings/Header";
 import { BorderRadius, Colors, Fonts, Spacing } from "@/constants/theme";
 import { useTheme } from "@/context/ThemeContext";
 import i18n from "@/lib/i18n";
-import { getCurrentLocation } from "@/lib/location";
+import { fetchStateCoordinates, getCurrentLocation } from "@/lib/location";
 import { searchLocation, SearchResult } from "@/lib/location-search";
 import {
   clearSavedLocation,
@@ -78,14 +78,50 @@ export default function LocationScreen() {
     setLoadingLocation(true);
     const loc = await getCurrentLocation();
     setCurrentLocation(loc);
-    setLoadingLocation(false);
+
     if (loc) {
-      const locationData: LocationData = {
-        lat: loc.coords.latitude.toString(),
-        lon: loc.coords.longitude.toString(),
+      const { latitude, longitude } = loc.coords;
+      let locationData: LocationData = {
+        lat: latitude.toString(),
+        lon: longitude.toString(),
         display_name: t("settings.currentLocation"),
         city: "Current Location",
       };
+
+      try {
+        // Reverse geocode to get the state
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=en`,
+          { headers: { "User-Agent": "MasjidieApp/1.0" } },
+        );
+        const geo = await res.json();
+
+        locationData = {
+          ...locationData,
+          city:
+            geo.address?.city ||
+            geo.address?.town ||
+            geo.address?.village ||
+            "Current Location",
+          town: geo.address?.town,
+          village: geo.address?.village,
+          state: geo.address?.state,
+          country: geo.address?.country,
+          display_name: geo.display_name || t("settings.currentLocation"),
+        };
+
+        // Forward geocode the state for prayer coordinates
+        if (locationData.state) {
+          const stateCoords = await fetchStateCoordinates(locationData.state);
+          if (stateCoords) {
+            locationData.stateLat = stateCoords.lat;
+            locationData.stateLon = stateCoords.lon;
+          }
+        }
+      } catch (e) {
+        console.warn("Reverse geocoding failed, using basic GPS coords", e);
+      }
+
       await saveLocation(locationData);
       setSavedLocationData(locationData);
       recalculateAndSchedule();
@@ -96,6 +132,7 @@ export default function LocationScreen() {
     } else {
       Alert.alert("Error", t("settings.locationError"));
     }
+    setLoadingLocation(false);
   };
 
   const handleSelectLocation = async (item: SearchResult) => {
@@ -105,7 +142,17 @@ export default function LocationScreen() {
       display_name: item.display_name,
       city: item.address.city || item.address.town || item.address.village,
       country: item.address.country,
+      state: item.address.state,
     };
+
+    if (locationData.state) {
+      const stateCoords = await fetchStateCoordinates(locationData.state);
+      if (stateCoords) {
+        locationData.stateLat = stateCoords.lat;
+        locationData.stateLon = stateCoords.lon;
+      }
+    }
+
     await saveLocation(locationData);
     setSavedLocationData(locationData);
     setQuery("");

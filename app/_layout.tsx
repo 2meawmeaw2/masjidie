@@ -22,12 +22,10 @@ import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
-import { AppState, I18nManager } from "react-native";
+import { AppState, I18nManager, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-
 const ONBOARDING_KEY = "@masjidie/onboarding_completed";
 
 SplashScreen.preventAutoHideAsync();
@@ -115,6 +113,11 @@ function RootLayoutContent() {
 
   return (
     <NavThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+      <StatusBar
+        backgroundColor="transparent"
+        barStyle={"dark-content"}
+        translucent
+      />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
@@ -132,11 +135,11 @@ function RootLayoutContent() {
         />
         <Stack.Screen
           name="onboarding"
-          options={{ headerShown: false, animation: "fade" }}
+          options={{ headerShown: false, animation: "flip" }}
         />
         <Stack.Screen
           name="location-permission"
-          options={{ headerShown: false, animation: "fade" }}
+          options={{ headerShown: false, animation: "flip" }}
         />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
@@ -149,7 +152,6 @@ function RootLayoutContent() {
           options={{ animation: "ios_from_left", headerShown: false }}
         />
       </Stack>
-      <StatusBar style="auto" />
     </NavThemeProvider>
   );
 }

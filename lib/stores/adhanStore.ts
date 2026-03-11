@@ -1,5 +1,5 @@
 import i18n from "@/lib/i18n";
-import { getSavedLocation } from "@/lib/storage";
+import { getStateCoordsForPrayer } from "@/lib/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CalculationMethod,
@@ -132,13 +132,7 @@ function calculateTimesForDate(
 }
 
 async function getCoordinates(): Promise<{ lat: number; lon: number }> {
-  const saved = await getSavedLocation();
-  if (saved) {
-    const lat = parseFloat(saved.lat);
-    const lon = parseFloat(saved.lon);
-    if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
-  }
-  return { lat: DEFAULT_LAT, lon: DEFAULT_LON };
+  return getStateCoordsForPrayer();
 }
 
 async function loadPreferences(): Promise<AdhanPreferences> {

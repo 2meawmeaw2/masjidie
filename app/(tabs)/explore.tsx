@@ -1,7 +1,7 @@
 import { ActivityCard } from "@/components/ActivityCard";
 import { IslamicSchoolCard } from "@/components/IslamicSchoolCard";
 import { MosqueCard } from "@/components/MosqueCard";
-import { AmbientBackground } from "@/components/ui/ambientBG";
+import { AnimatedHeaderBackground } from "@/components/ui/AnimatedHeaderBackground";
 import { Colors, Fonts, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDistanceKm, getPreferredLocation } from "@/lib/location";
@@ -14,18 +14,26 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
+import Animated, {
+  runOnJS,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from "react-native-reanimated";
+import {
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
 export default function ExploreScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const colorScheme = useColorScheme() ?? "light";
   const theme = Colors[colorScheme];
+  const insets = useSafeAreaInsets();
+  const isDark = colorScheme === "dark";
 
   // Stores
   const { events, isLoading: eventsLoading, fetchEvents } = useEventsStore();
@@ -80,7 +88,7 @@ export default function ExploreScreen() {
   const renderFeatured = () => (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.tint }]}>
+        <Text style={[styles.sectionTitle, { color: "white" }]}>
           {t("home.featured")}
         </Text>
       </View>
@@ -152,22 +160,31 @@ export default function ExploreScreen() {
     </View>
   );
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      edges={["top"]}
-    >
-      <AmbientBackground />
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.tint }]}>
-          {t("tabs.explore")}
-        </Text>
-      </View>
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  useAnimatedReaction(
+    () => scrollY.value > 50,
+    (scrolled, prev) => {
+      if (scrolled !== prev) {
+        runOnJS(setIsScrolled)(scrolled);
+      }
+    },
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <AnimatedHeaderBackground scrollY={scrollY} targetTranslateY={-250} />
 
       {/* Content */}
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={scrollHandler}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 100,
@@ -181,17 +198,24 @@ export default function ExploreScreen() {
           />
         }
       >
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+          <Text style={[styles.title, { color: "white" }]}>
+            {t("tabs.explore")}
+          </Text>
+        </View>
         {renderFeatured()}
         {renderIslamicSchools()}
         {renderNearby()}
-      </ScrollView>
-    </SafeAreaView>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative",
   },
   header: {
     paddingHorizontal: Spacing.md,
